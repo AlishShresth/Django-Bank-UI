@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Shield, Eye, EyeOff } from "lucide-react"
+import { Shield, Eye, EyeOff, Mail, CheckCircle } from "lucide-react"
 import type { UserRole } from "@/types/auth"
 
 export default function RegisterPage() {
@@ -27,6 +27,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [registrationSuccess, setRegistrationSuccess] = useState(false)
 
   const { register, isLoading } = useAuthStore()
   const router = useRouter()
@@ -79,15 +80,15 @@ export default function RegisterPage() {
       await register({
         email: formData.email,
         password: formData.password,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        phoneNumber: formData.phoneNumber || undefined,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        phone_number: formData.phoneNumber || undefined,
         role: formData.role,
       })
-      router.push("/dashboard")
+      setRegistrationSuccess(true)
     } catch (error: any) {
       setErrors({
-        general: error.response?.data?.message || "Registration failed. Please try again.",
+        general: error.response?.data?.error || "Registration failed. Please try again.",
       })
     }
   }
@@ -97,6 +98,67 @@ export default function RegisterPage() {
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }))
     }
+  }
+
+  if (registrationSuccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
+        <div className="w-full max-w-md">
+          <Card className="shadow-xl border-0">
+            <CardHeader className="text-center">
+              <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              </div>
+              <CardTitle className="text-2xl font-bold text-gray-900">Check Your Email</CardTitle>
+              <CardDescription className="text-gray-600">
+                We've sent an activation link to your email address
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2 text-sm text-gray-600 mb-4">
+                  <Mail className="w-4 h-4" />
+                  <span className="font-medium">{formData.email}</span>
+                </div>
+
+                <Alert className="border-blue-200 bg-blue-50">
+                  <AlertDescription className="text-blue-800">
+                    <strong>
+                      You're receiving this email because you need to finish activation process on SecureBank.
+                    </strong>
+                    <br />
+                    <br />
+                    Please go to the activation link in your email to activate your account.
+                    <br />
+                    <br />
+                    Thanks for using our site!
+                    <br />
+                    The SecureBank team
+                  </AlertDescription>
+                </Alert>
+              </div>
+
+              <div className="text-center space-y-3">
+                <p className="text-sm text-gray-600">Didn't receive the email? Check your spam folder or</p>
+                <Button
+                  variant="ghost"
+                  onClick={() => setRegistrationSuccess(false)}
+                  className="text-blue-600 hover:text-blue-700"
+                >
+                  Try registering again
+                </Button>
+                <div className="pt-4">
+                  <Button onClick={() => router.push("/login")} className="w-full bg-blue-600 hover:bg-blue-700">
+                    Back to Login
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
   }
 
   return (
