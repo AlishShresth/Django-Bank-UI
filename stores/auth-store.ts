@@ -1,97 +1,109 @@
-import { create } from "zustand"
-import { persist } from "zustand/middleware"
-import type { User, AuthState, LoginCredentials, RegisterData, AuthResponse } from "@/types/auth"
-import { apiClient } from "@/lib/axios"
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import type {
+  User,
+  AuthState,
+  LoginCredentials,
+  RegisterData,
+  LoginResponse,
+} from '@/types/auth';
+import { apiClient } from '@/lib/axios';
 
 interface AuthStore extends AuthState {
-  login: (credentials: LoginCredentials) => Promise<void>
-  register: (data: RegisterData) => Promise<void>
-  logout: () => void
-  refreshUser: () => Promise<void>
-  setLoading: (loading: boolean) => void
+  login: (credentials: LoginCredentials) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
+  logout: () => void;
+  refreshUser: () => Promise<void>;
+  setLoading: (loading: boolean) => void;
 }
 
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
+      email: null,
       user: null,
-      token: null,
       isAuthenticated: false,
       isLoading: false,
 
       login: async (credentials: LoginCredentials) => {
-        set({ isLoading: true })
+        set({ isLoading: true });
         try {
-          const response = await apiClient.post<AuthResponse>("/auth/login/", credentials)
-          const { user, access_token, refresh_token } = response.data
-
-          localStorage.setItem("access_token", access_token)
-          localStorage.setItem("refresh_token", refresh_token)
-
-          set({
-            user,
-            token: access_token,
-            isAuthenticated: true,
-            isLoading: false,
-          })
+          const response = await apiClient.post<LoginResponse>(
+            '/v1/auth/login/',
+            credentials
+          );
+          const { success, email } = response.data;
+          set({ email, isLoading: false });
         } catch (error) {
-          set({ isLoading: false })
-          throw error
+          set({ isLoading: false });
+          throw error;
+        }
+      },
+
+      verify_otp: async (otp: { otp: string }) => {
+        set({ isLoading: true });
+        try {
+          const response = await apiClient.post('/v1/auth/verify-otp/', otp);
+          const { user } = response.data;
+          set({ isLoading: false, user, isAuthenticated: true });
+        } catch (error) {
+          set({ isLoading: false, isAuthenticated: false, user: null });
+          throw error;
         }
       },
 
       register: async (data: RegisterData) => {
-        set({ isLoading: true })
+        set({ isLoading: true });
         try {
-          const response = await apiClient.post<AuthResponse>("/auth/register/", data)
-          const { user, access_token, refresh_token } = response.data
-
-          localStorage.setItem("access_token", access_token)
-          localStorage.setItem("refresh_token", refresh_token)
-
-          set({
-            user,
-            token: access_token,
-            isAuthenticated: true,
-            isLoading: false,
-          })
+          const response = await apiClient.post<User>('/v1/auth/users/', data);
+          set({ user: response.data, isLoading: false });
         } catch (error) {
-          set({ isLoading: false })
-          throw error
+          set({ isLoading: false, user: null });
+          throw error;
         }
       },
 
-      logout: () => {
-        localStorage.removeItem("access_token")
-        localStorage.removeItem("refresh_token")
-        set({
-          user: null,
-          token: null,
-          isAuthenticated: false,
-          isLoading: false,
-        })
+      logout: async () => {
+        set({ isLoading: true });
+        try {
+          const response = await apiClient.post('/v1/auth/logout/');
+          set({
+            isLoading: false,
+            email: null,
+            isAuthenticated: false,
+            user: null,
+          });
+        } catch (error) {
+          set({
+            isLoading: false,
+            email: null,
+            isAuthenticated: false,
+            user: null,
+          });
+          throw error;
+        }
       },
 
       refreshUser: async () => {
         try {
-          const response = await apiClient.get<User>("/auth/me/")
-          set({ user: response.data })
+          const response = await apiClient.post('/v1/auth/refresh/');
         } catch (error) {
-          get().logout()
+          get().logout();
         }
       },
 
       setLoading: (loading: boolean) => {
-        set({ isLoading: loading })
+        set({ isLoading: loading });
       },
     }),
     {
-      name: "auth-storage",
+      name: 'auth-storage',
       partialize: (state) => ({
         user: state.user,
-        token: state.token,
+        email: state.email,
         isAuthenticated: state.isAuthenticated,
+        isLoading: state.isLoading,
       }),
-    },
-  ),
-)
+    }
+  )
+);

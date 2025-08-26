@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import type React from "react"
 import { useEffect } from "react"
@@ -9,12 +9,10 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  const { refreshUser, isAuthenticated, token } = useAuthStore()
+  const { refreshUser, isAuthenticated, user } = useAuthStore();
 
   useEffect(() => {
-    // Check if we have a token in localStorage on app start
-    const storedToken = localStorage.getItem("access_token")
-    if (storedToken && isAuthenticated) {
+    if (user && isAuthenticated) {
       refreshUser()
     }
   }, [refreshUser, isAuthenticated])

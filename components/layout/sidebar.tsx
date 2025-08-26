@@ -2,7 +2,6 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useAuthStore } from "@/stores/auth-store"
-import { hasPermission } from "@/lib/rbac"
 import { cn } from "@/lib/utils"
 import {
   Home,
@@ -22,49 +21,49 @@ const navigationItems = [
     name: "Dashboard",
     href: "/dashboard",
     icon: Home,
-    permission: "view_dashboard" as const,
+    role: ["customer", "branch_manager", "account_executive", "teller"] as const,
   },
   {
     name: "Accounts",
     href: "/accounts",
     icon: CreditCard,
-    permission: "view_accounts" as const,
+    role: ["customer", "branch_manager", "account_executive", "teller"] as const,
   },
   {
     name: "Transactions",
     href: "/transactions",
     icon: History,
-    permission: "view_transactions" as const,
+    role: ["customer", "branch_manager", "account_executive", "teller"] as const,
   },
   {
     name: "Transfers",
     href: "/transfers",
     icon: ArrowLeftRight,
-    permission: "transfer_funds" as const,
+    role: ["customer", "branch_manager", "account_executive", "teller"] as const,
   },
   {
     name: "Cards",
     href: "/cards",
     icon: CreditCard,
-    permission: "manage_cards" as const,
+    role: ["customer", "branch_manager", "account_executive", "teller"] as const,
   },
   {
     name: "Customers",
     href: "/customers",
     icon: Users,
-    permission: "view_all_customers" as const,
+    role: ["branch_manager", "account_executive", "teller"] as const,
   },
   {
     name: "Reports",
     href: "/reports",
     icon: PieChart,
-    permission: "view_branch_reports" as const,
+    role: ["branch_manager"] as const,
   },
   {
     name: "Staff",
     href: "/staff",
     icon: UserCheck,
-    permission: "manage_staff" as const,
+    role: ["branch_manager", "account_executive"] as const,
   },
 ]
 
@@ -74,7 +73,7 @@ export function Sidebar() {
 
   if (!user) return null
 
-  const filteredNavigation = navigationItems.filter((item) => hasPermission(user.role, item.permission))
+  const filteredNavigation = navigationItems.filter((item) => item.role.includes(user.role))
 
   return (
     <div className="flex flex-col h-full bg-card border-r border-border">
@@ -116,13 +115,13 @@ export function Sidebar() {
         <div className="flex items-center gap-3 mb-4">
           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
             <span className="text-sm font-medium text-primary">
-              {user.firstName[0]}
-              {user.lastName[0]}
+              {user.first_name[0]}
+              {user.last_name[0]}
             </span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-foreground truncate">
-              {user.firstName} {user.lastName}
+              {user.first_name} {user.last_name}
             </p>
             <p className="text-xs text-muted-foreground truncate">{user.email}</p>
           </div>
