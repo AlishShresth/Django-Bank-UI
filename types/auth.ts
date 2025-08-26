@@ -62,3 +62,7 @@ export type SecurityQuestions =
   | 'favorite_color'
   | 'birth_city'
   | 'childhood_friend';
+
+export interface OTP {
+  otp: string
+}

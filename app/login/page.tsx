@@ -3,14 +3,14 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { useAuthStore } from "@/stores/auth-store"
 import { FormInput } from "@/components/ui/form-input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Shield, Eye, EyeOff } from "lucide-react"
+import { Shield, Eye, EyeOff, CheckCircle } from "lucide-react"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -20,6 +20,9 @@ export default function LoginPage() {
 
   const { login, isLoading } = useAuthStore()
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  const activated = searchParams.get("activated")
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {}
@@ -47,10 +50,10 @@ export default function LoginPage() {
 
     try {
       await login({ email, password })
-      router.push("/dashboard")
+      router.push(`/verify-otp?email=${encodeURIComponent(email)}`)
     } catch (error: any) {
       setErrors({
-        general: error.response?.data?.message || "Invalid email or password. Please try again.",
+        general: error.response?.data?.error || "Invalid email or password. Please try again.",
       })
     }
   }
@@ -72,6 +75,15 @@ export default function LoginPage() {
             <CardDescription className="text-center">Sign in to your account to continue</CardDescription>
           </CardHeader>
           <CardContent>
+            {activated && (
+              <Alert className="mb-4 border-green-200 bg-green-50">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-800">
+                  Account activated successfully! You can now sign in.
+                </AlertDescription>
+              </Alert>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               {errors.general && (
                 <Alert variant="destructive">

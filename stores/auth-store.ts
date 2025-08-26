@@ -6,11 +6,14 @@ import type {
   LoginCredentials,
   RegisterData,
   LoginResponse,
+  OTP,
 } from '@/types/auth';
 import { apiClient } from '@/lib/axios';
 
 interface AuthStore extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
+  verifyOtp: (otp: OTP) => Promise<void>;
+  resendOtp: (email: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -40,7 +43,7 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
-      verify_otp: async (otp: { otp: string }) => {
+      verifyOtp: async (otp: OTP) => {
         set({ isLoading: true });
         try {
           const response = await apiClient.post('/v1/auth/verify-otp/', otp);
@@ -48,6 +51,17 @@ export const useAuthStore = create<AuthStore>()(
           set({ isLoading: false, user, isAuthenticated: true });
         } catch (error) {
           set({ isLoading: false, isAuthenticated: false, user: null });
+          throw error;
+        }
+      },
+
+      resendOtp: async (email: string) => {
+        set({ isLoading: true });
+        try {
+          await apiClient.post('/v1/auth/resend-otp/', { email });
+          set({ isLoading: false });
+        } catch (error) {
+          set({ isLoading: false });
           throw error;
         }
       },

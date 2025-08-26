@@ -11,7 +11,7 @@ import { Shield, Clock, Mail } from 'lucide-react'
 
 export default function VerifyOTPPage() {
   const [otp, setOtp] = useState('')
-  const [timeLeft, setTimeLeft] = useState(60) // 1 minute countdown
+  const [timeLeft, setTimeLeft] = useState(60*5) // 1 minute countdown
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [canResend, setCanResend] = useState(false)
@@ -19,7 +19,7 @@ export default function VerifyOTPPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const email = searchParams.get('email')
-  const { verify_otp, resent_otp } = useAuthStore()
+  const { verifyOtp, resendOtp } = useAuthStore()
 
   // Countdown timer
   useEffect(() => {
@@ -54,7 +54,7 @@ export default function VerifyOTPPage() {
     setError('')
 
     try {
-      await verifyOTP(email!, otp)
+      await verifyOtp({otp: otp})
       router.push('/dashboard')
     } catch (err: any) {
       setError(err.response?.data?.message || 'Invalid OTP. Please try again.')
@@ -68,7 +68,7 @@ export default function VerifyOTPPage() {
     setError('')
 
     try {
-      await resendOTP(email!)
+      await resendOtp(email!)
       setTimeLeft(60)
       setCanResend(false)
       setOtp('')
@@ -102,22 +102,23 @@ export default function VerifyOTPPage() {
               <Mail className="w-4 h-4" />
               <span className="font-medium">{email}</span>
             </div>
+            <div className="flex justify-center">
 
-            <InputOTP
-              maxLength={6}
-              value={otp}
-              onChange={(value) => setOtp(value)}
-              className="justify-center"
-            >
-              <InputOTPGroup>
-                <InputOTPSlot index={0} />
-                <InputOTPSlot index={1} />
-                <InputOTPSlot index={2} />
-                <InputOTPSlot index={3} />
-                <InputOTPSlot index={4} />
-                <InputOTPSlot index={5} />
-              </InputOTPGroup>
-            </InputOTP>
+              <InputOTP
+                maxLength={6}
+                value={otp}
+                onChange={(value) => setOtp(value)}
+              >
+                <InputOTPGroup >
+                  <InputOTPSlot index={0} className='justify-center h-12 w-10' />
+                  <InputOTPSlot index={1} className='justify-center h-12 w-10' />
+                  <InputOTPSlot index={2} className='justify-center h-12 w-10' />
+                  <InputOTPSlot index={3} className='justify-center h-12 w-10' />
+                  <InputOTPSlot index={4} className='justify-center h-12 w-10' />
+                  <InputOTPSlot index={5} className='justify-center h-12 w-10' />
+                </InputOTPGroup>
+              </InputOTP>
+            </div>
           </div>
 
           {error && (
