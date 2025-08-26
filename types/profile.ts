@@ -33,6 +33,7 @@ export interface Profile {
   signature_photo?: string;
   signature_photo_url?: string;
   is_complete_with_next_of_kin(): boolean;
+  created_at: string;
 }
 
 export interface NextOfKin {
