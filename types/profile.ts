@@ -83,3 +83,34 @@ export interface ProfileState {
   next_of_kin: NextOfKin[] | null;
   isLoading: boolean;
 }
+
+export interface ProfileData  {
+  title: Salutation;
+  first_name: string;
+  middle_name: string;
+  last_name: string;
+  email: string;
+  gender: Gender;
+  date_of_birth: string;
+  country_of_birth: string;
+  place_of_birth: string;
+  marital_status: MaritalStatus;
+  means_of_identification: IdentificationMeans;
+  id_issue_date: string;
+  id_expiry_date: string;
+  passport_number: string;
+  nationality: string;
+  phone_number: string;
+  address: string;
+  city: string;
+  country: string;
+  employment_status: EmploymentStatus;
+  employer_name: string;
+  annual_income: number;
+  date_of_employment: string;
+  employer_address: string;
+  employer_city: string;
+  employer_state: string;
+  account_currency: string;
+  account_type: string;
+};
