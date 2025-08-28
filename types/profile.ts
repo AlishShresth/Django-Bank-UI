@@ -17,7 +17,7 @@ export interface Profile {
   address: string;
   city: string;
   country: string;
-  employer_status: EmploymentStatus;
+  employment_status: EmploymentStatus;
   employer_name?: string;
   annual_income: number;
   date_of_employment?: string;
@@ -77,3 +77,9 @@ export type EmploymentStatus =
   | 'unemployed'
   | 'retired'
   | 'student';
+
+export interface ProfileState {
+  profile: Profile | null;
+  next_of_kin: NextOfKin[] | null;
+  isLoading: boolean;
+}
