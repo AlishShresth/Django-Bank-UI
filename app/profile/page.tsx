@@ -22,7 +22,8 @@ import {
 } from "@/components/ui/dialog"
 import { User, Shield, Bell, Key, Smartphone, CheckCircle, Plus, Trash2, Users } from "lucide-react"
 import { useAuthStore } from "@/stores/auth-store"
-import type { Salutation, Gender, MaritalStatus, IdentificationMeans, EmploymentStatus } from "@/types/profile"
+import type { Salutation, Gender, MaritalStatus, IdentificationMeans, EmploymentStatus, ProfileData, Profile } from "@/types/profile"
+import type { User as UserType } from "@/types/auth"
 import { useProfileStore } from "@/stores/profile-store"
 import { apiClient } from "@/lib/axios"
 
@@ -43,42 +44,44 @@ interface NextOfKinData {
   is_primary: boolean
 }
 
+const generateProfileData = (profile: Profile | null, user: UserType | null): ProfileData => ({
+  title: profile?.title || "mr" as Salutation,
+  first_name: user?.first_name || "",
+  middle_name: user?.middle_name || "",
+  last_name: user?.last_name || "",
+  email: user?.email || "",
+  gender: profile?.gender || "male" as Gender,
+  date_of_birth: profile?.date_of_birth || "",
+  country_of_birth: profile?.country_of_birth || "",
+  place_of_birth: profile?.place_of_birth || "",
+  marital_status: profile?.marital_status || "single" as MaritalStatus,
+  means_of_identification: profile?.means_of_identification || "citizenship" as IdentificationMeans,
+  id_issue_date: profile?.id_issue_date || "",
+  id_expiry_date: profile?.id_expiry_date || "",
+  passport_number: profile?.passport_number || "",
+  nationality: profile?.nationality || "",
+  phone_number: profile?.phone_number || "",
+  address: profile?.address || "",
+  city: profile?.city || "",
+  country: profile?.country || "",
+  employment_status: profile?.employment_status || "employed" as EmploymentStatus,
+  employer_name: profile?.employer_name || "",
+  annual_income: profile?.annual_income || 0,
+  date_of_employment: profile?.date_of_employment || "",
+  employer_address: profile?.employer_address || "",
+  employer_city: profile?.employer_city || "",
+  employer_state: profile?.employer_state || "",
+  account_currency: profile?.account_currency || "nepalese_rupees",
+  account_type: profile?.account_type || "savings",
+})
+
 export default function ProfilePage() {
   const { user } = useAuthStore()
   const { profile, next_of_kin, getProfile } = useProfileStore()
   const [isLoading, setIsLoading] = useState(false)
   const [notification, setNotification] = useState<string | null>(null)
 
-  const [profileData, setProfileData] = useState({
-    title: profile?.title || "mr" as Salutation,
-    firstName: user?.first_name || "",
-    middleName: user?.middle_name || "",
-    lastName: user?.last_name || "",
-    email: user?.email || "",
-    gender: profile?.gender || "male" as Gender,
-    date_of_birth: profile?.date_of_birth || "",
-    country_of_birth: profile?.country_of_birth || "",
-    place_of_birth: profile?.place_of_birth || "",
-    marital_status: profile?.marital_status || "single" as MaritalStatus,
-    means_of_identification: profile?.means_of_identification || "citizenship" as IdentificationMeans,
-    id_issue_date: profile?.id_issue_date || "",
-    id_expiry_date: profile?.id_expiry_date || "",
-    passport_number: profile?.passport_number || "",
-    nationality: profile?.nationality || "",
-    phone_number: profile?.phone_number || "",
-    address: profile?.address || "",
-    city: profile?.city || "",
-    country: profile?.country || "",
-    employment_status: profile?.employment_status || "employed" as EmploymentStatus,
-    employer_name: profile?.employer_name || "",
-    annual_income: profile?.annual_income || 0,
-    date_of_employment: profile?.date_of_employment || "",
-    employer_address: profile?.employer_address || "",
-    employer_city: profile?.employer_city || "",
-    employer_state: profile?.employer_state || "",
-    account_currency: profile?.account_currency || "nepalese_rupees",
-    account_type: profile?.account_type || "savings",
-  })
+  const [profileData, setProfileData] = useState<ProfileData>(generateProfileData(profile, user));
 
   const [nextOfKinList, setNextOfKinList] = useState<NextOfKinData[]>([])
   const [isAddingNextOfKin, setIsAddingNextOfKin] = useState(false)
@@ -156,6 +159,10 @@ export default function ProfilePage() {
     setTimeout(() => setNotification(null), 3000)
   }
 
+  useEffect(() => {
+    setProfileData(generateProfileData(profile, user))
+  }, [profile, user])
+
   if (!user) {
     return (
       <DashboardLayout>
@@ -166,42 +173,9 @@ export default function ProfilePage() {
     )
   }
 
-  useEffect(() => {
-    setProfileData({
-      title: profile?.title || "mr" as Salutation,
-      firstName: user?.first_name || "",
-      middleName: user?.middle_name || "",
-      lastName: user?.last_name || "",
-      email: user?.email || "",
-      gender: profile?.gender || "male" as Gender,
-      date_of_birth: profile?.date_of_birth || "",
-      country_of_birth: profile?.country_of_birth || "",
-      place_of_birth: profile?.place_of_birth || "",
-      marital_status: profile?.marital_status || "single" as MaritalStatus,
-      means_of_identification: profile?.means_of_identification || "citizenship" as IdentificationMeans,
-      id_issue_date: profile?.id_issue_date || "",
-      id_expiry_date: profile?.id_expiry_date || "",
-      passport_number: profile?.passport_number || "",
-      nationality: profile?.nationality || "",
-      phone_number: profile?.phone_number || "",
-      address: profile?.address || "",
-      city: profile?.city || "",
-      country: profile?.country || "",
-      employment_status: profile?.employment_status || "employed" as EmploymentStatus,
-      employer_name: profile?.employer_name || "",
-      annual_income: profile?.annual_income || 0,
-      date_of_employment: profile?.date_of_employment || "",
-      employer_address: profile?.employer_address || "",
-      employer_city: profile?.employer_city || "",
-      employer_state: profile?.employer_state || "",
-      account_currency: profile?.account_currency || "nepalese_rupees",
-      account_type: profile?.account_type || "savings"
-    })
-  }, [profile])
-
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
+    <DashboardLayout >
+      <div>
         <div>
           <h1 className="text-3xl font-bold text-foreground">Profile & Security</h1>
           <p className="text-muted-foreground">Manage your account information and security settings</p>
@@ -216,19 +190,19 @@ export default function ProfilePage() {
 
         <Tabs defaultValue="profile" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="profile" className="flex items-center gap-2">
+            <TabsTrigger value="profile" className="flex items-center gap-2 cursor-pointer">
               <User className="h-4 w-4" />
               Profile
             </TabsTrigger>
-            <TabsTrigger value="next-of-kin" className="flex items-center gap-2">
+            <TabsTrigger value="next-of-kin" className="flex items-center gap-2 cursor-pointer">
               <Users className="h-4 w-4" />
               Next of Kin
             </TabsTrigger>
-            <TabsTrigger value="security" className="flex items-center gap-2">
+            <TabsTrigger value="security" className="flex items-center gap-2 cursor-pointer">
               <Shield className="h-4 w-4" />
               Security
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center gap-2">
+            <TabsTrigger value="notifications" className="flex items-center gap-2 cursor-pointer">
               <Bell className="h-4 w-4" />
               Notifications
             </TabsTrigger>
@@ -243,12 +217,12 @@ export default function ProfilePage() {
                 <form onSubmit={handleProfileUpdate} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
-                      <label className="text-sm font-medium">Title</label>
+                      <label className="text-sm font-medium" htmlFor="title">Title</label>
                       <Select
                         value={profileData.title}
                         onValueChange={(value: Salutation) => setProfileData({ ...profileData, title: value })}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full" >
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -261,24 +235,28 @@ export default function ProfilePage() {
                     <div className="hidden md:block"></div>
                     <div className="hidden lg:block"></div>
                     <FormInput
+                      id="first_name"
                       label="First Name"
-                      value={profileData.firstName}
-                      onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
+                      value={profileData.first_name}
+                      onChange={(e) => setProfileData({ ...profileData, first_name: e.target.value })}
                       required
                     />
                     <FormInput
+                      id="middle_name"
                       label="Middle Name"
-                      value={profileData.middleName}
-                      onChange={(e) => setProfileData({ ...profileData, middleName: e.target.value })}
+                      value={profileData.middle_name}
+                      onChange={(e) => setProfileData({ ...profileData, middle_name: e.target.value })}
                       required
                     />
                     <FormInput
+                      id="last_name"
                       label="Last Name"
-                      value={profileData.lastName}
-                      onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
+                      value={profileData.last_name}
+                      onChange={(e) => setProfileData({ ...profileData, last_name: e.target.value })}
                       required
                     />
                     <FormInput
+                      id="date_of_birth"
                       label="Date of Birth"
                       type="date"
                       value={profileData.date_of_birth}
@@ -286,7 +264,7 @@ export default function ProfilePage() {
                       required
                     />
                     <div>
-                      <label className="text-sm font-medium">Gender</label>
+                      <label className="text-sm font-medium" htmlFor="gender">Gender</label>
                       <Select
                         value={profileData.gender}
                         onValueChange={(value: Gender) => setProfileData({ ...profileData, gender: value })}
@@ -303,25 +281,28 @@ export default function ProfilePage() {
                     </div>
                     <div className="hidden lg:block"></div>
                     <FormInput
+                      id="nationality"
                       label="Nationality"
                       value={profileData.nationality}
                       onChange={(e) => setProfileData({ ...profileData, nationality: e.target.value })}
                       required
                     />
                     <FormInput
+                      id="country_of_birth"
                       label="Country of Birth"
                       value={profileData.country_of_birth}
                       onChange={(e) => setProfileData({ ...profileData, country_of_birth: e.target.value })}
                       required
                     />
                     <FormInput
+                      id="place_of_birth"
                       label="Place of Birth"
                       value={profileData.place_of_birth}
                       onChange={(e) => setProfileData({ ...profileData, place_of_birth: e.target.value })}
                       required
                     />
                     <div>
-                      <label className="text-sm font-medium">Marital Status</label>
+                      <label className="text-sm font-medium" htmlFor="marital_status">Marital Status</label>
                       <Select
                         value={profileData.marital_status}
                         onValueChange={(value: MaritalStatus) =>
@@ -345,8 +326,9 @@ export default function ProfilePage() {
                     <h3 className="text-lg font-semibold mb-4">Identification</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div>
-                        <label className="text-sm font-medium">Means of Identification</label>
+                        <label htmlFor="means_of_identification" className="text-sm font-medium">Means of Identification</label>
                         <Select
+                          aria-labelledby="means_of_identification"
                           value={profileData.means_of_identification}
                           onValueChange={(value: IdentificationMeans) =>
                             setProfileData({ ...profileData, means_of_identification: value })
