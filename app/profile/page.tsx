@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -11,19 +10,85 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Switch } from "@/components/ui/switch"
-import { User, Shield, Bell, Key, Smartphone, CheckCircle } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { User, Shield, Bell, Key, Smartphone, CheckCircle, Plus, Trash2, Users } from "lucide-react"
 import { useAuthStore } from "@/stores/auth-store"
+import type { Salutation, Gender, MaritalStatus, IdentificationMeans, EmploymentStatus, ProfileData, Profile, NextOfKin } from "@/types/profile"
+import type { User as UserType } from "@/types/auth"
+import { useProfileStore } from "@/stores/profile-store"
+import { apiClient } from "@/lib/axios"
+
+const generateProfileData = (profile: Profile | null, user: UserType | null): ProfileData => ({
+  title: profile?.title || "mr" as Salutation,
+  first_name: user?.first_name || "",
+  middle_name: user?.middle_name || "",
+  last_name: user?.last_name || "",
+  email: user?.email || "",
+  gender: profile?.gender || "male" as Gender,
+  date_of_birth: profile?.date_of_birth || "",
+  country_of_birth: profile?.country_of_birth || "",
+  place_of_birth: profile?.place_of_birth || "",
+  marital_status: profile?.marital_status || "single" as MaritalStatus,
+  means_of_identification: profile?.means_of_identification || "citizenship" as IdentificationMeans,
+  id_issue_date: profile?.id_issue_date || "",
+  id_expiry_date: profile?.id_expiry_date || "",
+  passport_number: profile?.passport_number || "",
+  nationality: profile?.nationality || "",
+  phone_number: profile?.phone_number || "",
+  address: profile?.address || "",
+  city: profile?.city || "",
+  country: profile?.country || "",
+  employment_status: profile?.employment_status || "employed" as EmploymentStatus,
+  employer_name: profile?.employer_name || "",
+  annual_income: profile?.annual_income || 0,
+  date_of_employment: profile?.date_of_employment || "",
+  employer_address: profile?.employer_address || "",
+  employer_city: profile?.employer_city || "",
+  employer_state: profile?.employer_state || "",
+  account_currency: profile?.account_currency || "nepalese_rupees",
+  account_type: profile?.account_type || "savings",
+  next_of_kin: profile?.next_of_kin || [] as NextOfKin[],
+})
+
+const generateNewNextOfKin = (profile: Profile) => ({
+  profile: profile!,
+  id: null,
+  title: "mr" as Salutation,
+  first_name: "",
+  last_name: "",
+  other_names: "",
+  date_of_birth: "",
+  gender: "male" as Gender,
+  relationship: "",
+  email_address: "",
+  phone_number: "",
+  address: "",
+  city: "",
+  country: "",
+  is_primary: false,
+});
 
 export default function ProfilePage() {
   const { user } = useAuthStore()
+  const { profile, next_of_kin, updateProfile, setProfile } = useProfileStore()
   const [isLoading, setIsLoading] = useState(false)
   const [notification, setNotification] = useState<string | null>(null)
-  const [profileData, setProfileData] = useState({
-    firstName: user?.firstName || "",
-    lastName: user?.lastName || "",
-    email: user?.email || "",
-    phoneNumber: user?.phoneNumber || "",
-  })
+
+  const [profileData, setProfileData] = useState<ProfileData>(generateProfileData(profile, user));
+
+  const [nextOfKinList, setNextOfKinList] = useState<NextOfKin[]>(generateProfileData(profile, user).next_of_kin!)
+  const [isAddingNextOfKin, setIsAddingNextOfKin] = useState(false)
+  const [newNextOfKin, setNewNextOfKin] = useState<Omit<NextOfKin, "id">>(generateNewNextOfKin(profile!));
+
   const [securitySettings, setSecuritySettings] = useState({
     twoFactorEnabled: false,
     emailNotifications: true,
@@ -36,8 +101,8 @@ export default function ProfilePage() {
     e.preventDefault()
     setIsLoading(true)
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      setProfile(profileData);
+      await updateProfile(profile!);
       setNotification("Profile updated successfully")
       setTimeout(() => setNotification(null), 3000)
     } catch (error) {
@@ -47,26 +112,44 @@ export default function ProfilePage() {
     }
   }
 
+  const handleAddNextOfKin = () => {
+    const id = Date.now().toString()
+    setNextOfKinList([...nextOfKinList, { ...newNextOfKin, id }])
+    setNewNextOfKin(generateNewNextOfKin(profile!))
+    setIsAddingNextOfKin(false)
+    setNotification("Next of kin added successfully")
+    setTimeout(() => setNotification(null), 3000)
+  }
+
+  const handleRemoveNextOfKin = (id: string) => {
+    setNextOfKinList(nextOfKinList.filter((kin) => kin.id !== id))
+    setNotification("Next of kin removed")
+    setTimeout(() => setNotification(null), 3000)
+  }
+
   const handleSecurityUpdate = async (setting: string, value: boolean) => {
     setSecuritySettings({ ...securitySettings, [setting]: value })
-    // Simulate API call
     setNotification(`${setting} ${value ? "enabled" : "disabled"}`)
     setTimeout(() => setNotification(null), 3000)
   }
+
+  useEffect(() => {
+    setProfileData(generateProfileData(profile, user))
+  }, [profile, user])
 
   if (!user) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="animate-spin rounded-full h-24 w-24 border-b-2 border-primary"></div>
         </div>
       </DashboardLayout>
     )
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
+    <DashboardLayout >
+      <div>
         <div>
           <h1 className="text-3xl font-bold text-foreground">Profile & Security</h1>
           <p className="text-muted-foreground">Manage your account information and security settings</p>
@@ -81,15 +164,19 @@ export default function ProfilePage() {
 
         <Tabs defaultValue="profile" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="profile" className="flex items-center gap-2">
+            <TabsTrigger value="profile" className="flex items-center gap-2 cursor-pointer">
               <User className="h-4 w-4" />
               Profile
             </TabsTrigger>
-            <TabsTrigger value="security" className="flex items-center gap-2">
+            <TabsTrigger value="next-of-kin" className="flex items-center gap-2 cursor-pointer">
+              <Users className="h-4 w-4" />
+              Next of Kin
+            </TabsTrigger>
+            <TabsTrigger value="security" className="flex items-center gap-2 cursor-pointer">
               <Shield className="h-4 w-4" />
               Security
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center gap-2">
+            <TabsTrigger value="notifications" className="flex items-center gap-2 cursor-pointer">
               <Bell className="h-4 w-4" />
               Notifications
             </TabsTrigger>
@@ -101,42 +188,464 @@ export default function ProfilePage() {
                 <CardTitle>Personal Information</CardTitle>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleProfileUpdate} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <form onSubmit={handleProfileUpdate} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-sm font-medium" htmlFor="title">Title</label>
+                      <Select
+                        value={profileData.title}
+                        onValueChange={(value: Salutation) => setProfileData({ ...profileData, title: value })}
+                      >
+                        <SelectTrigger className="w-full cursor-pointer" >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="mr">Mr.</SelectItem>
+                          <SelectItem value="mrs">Mrs.</SelectItem>
+                          <SelectItem value="miss">Miss</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="hidden md:block"></div>
+                    <div className="hidden lg:block"></div>
                     <FormInput
+                      id="first_name"
                       label="First Name"
-                      value={profileData.firstName}
-                      onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
+                      value={profileData.first_name}
+                      onChange={(e) => setProfileData({ ...profileData, first_name: e.target.value })}
                       required
                     />
                     <FormInput
+                      id="middle_name"
+                      label="Middle Name"
+                      value={profileData.middle_name}
+                      onChange={(e) => setProfileData({ ...profileData, middle_name: e.target.value })}
+                    />
+                    <FormInput
+                      id="last_name"
                       label="Last Name"
-                      value={profileData.lastName}
-                      onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
+                      value={profileData.last_name}
+                      onChange={(e) => setProfileData({ ...profileData, last_name: e.target.value })}
                       required
                     />
+                    <FormInput
+                      id="date_of_birth"
+                      label="Date of Birth"
+                      type="date"
+                      value={profileData.date_of_birth}
+                      onChange={(e) => setProfileData({ ...profileData, date_of_birth: e.target.value })}
+                      required
+                    />
+                    <div>
+                      <label className="text-sm font-medium" htmlFor="gender">Gender<span className="text-red-500">*</span></label>
+                      <Select
+                        value={profileData.gender}
+                        onValueChange={(value: Gender) => setProfileData({ ...profileData, gender: value })}
+                      >
+                        <SelectTrigger className="w-full cursor-pointer">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="hidden lg:block"></div>
+                    <FormInput
+                      id="nationality"
+                      label="Nationality"
+                      value={profileData.nationality}
+                      onChange={(e) => setProfileData({ ...profileData, nationality: e.target.value })}
+                      required
+                    />
+                    <FormInput
+                      id="country_of_birth"
+                      label="Country of Birth"
+                      value={profileData.country_of_birth}
+                      onChange={(e) => setProfileData({ ...profileData, country_of_birth: e.target.value })}
+                      required
+                    />
+                    <FormInput
+                      id="place_of_birth"
+                      label="Place of Birth"
+                      value={profileData.place_of_birth}
+                      onChange={(e) => setProfileData({ ...profileData, place_of_birth: e.target.value })}
+                      required
+                    />
+                    <div>
+                      <label className="text-sm font-medium" htmlFor="marital_status">Marital Status</label>
+                      <Select
+                        value={profileData.marital_status}
+                        onValueChange={(value: MaritalStatus) =>
+                          setProfileData({ ...profileData, marital_status: value })
+                        }
+                      >
+                        <SelectTrigger className="w-full cursor-pointer">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="single">Single</SelectItem>
+                          <SelectItem value="married">Married</SelectItem>
+                          <SelectItem value="divorced">Divorced</SelectItem>
+                          <SelectItem value="widowed">Widowed</SelectItem>
+                          <SelectItem value="separated">Separated</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <FormInput
-                    label="Email Address"
-                    type="email"
-                    value={profileData.email}
-                    onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                    required
-                  />
-                  <FormInput
-                    label="Phone Number"
-                    type="tel"
-                    value={profileData.phoneNumber}
-                    onChange={(e) => setProfileData({ ...profileData, phoneNumber: e.target.value })}
-                  />
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold mb-4">Identification</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div>
+                        <label htmlFor="means_of_identification" className="text-sm font-medium">Means of Identification</label>
+                        <Select
+                          value={profileData.means_of_identification}
+                          onValueChange={(value: IdentificationMeans) =>
+                            setProfileData({ ...profileData, means_of_identification: value })
+                          }
+                        >
+                          <SelectTrigger className="w-full cursor-pointer">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="citizenship">Citizenship</SelectItem>
+                            <SelectItem value="drivers_license">Driver's License</SelectItem>
+                            <SelectItem value="national_id">National ID</SelectItem>
+                            <SelectItem value="passport">Passport</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <FormInput
+                        label="Identification Number"
+                        value={profileData.passport_number}
+                        onChange={(e) => setProfileData({ ...profileData, passport_number: e.target.value })}
+                      />
+                      <div className="hidden lg:block"></div>
+                      <FormInput
+                        label="ID Issue Date"
+                        type="date"
+                        value={profileData.id_issue_date}
+                        onChange={(e) => setProfileData({ ...profileData, id_issue_date: e.target.value })}
+                        required
+                      />
+                      <FormInput
+                        label="ID Expiry Date"
+                        type="date"
+                        value={profileData.id_expiry_date}
+                        onChange={(e) => setProfileData({ ...profileData, id_expiry_date: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold mb-4">Contact Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <FormInput
+                        label="Email Address"
+                        type="email"
+                        value={profileData.email}
+                        onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                        required
+                      />
+                      <FormInput
+                        label="Phone Number"
+                        type="tel"
+                        value={profileData.phone_number}
+                        onChange={(e) => setProfileData({ ...profileData, phone_number: e.target.value })}
+                        required
+                      />
+                      <div className="hidden lg:block"></div>
+                      <FormInput
+                        label="Address"
+                        value={profileData.address}
+                        onChange={(e) => setProfileData({ ...profileData, address: e.target.value })}
+                        required
+                      />
+                      <FormInput
+                        label="City"
+                        value={profileData.city}
+                        onChange={(e) => setProfileData({ ...profileData, city: e.target.value })}
+                        required
+                      />
+                      <FormInput
+                        label="Country"
+                        value={profileData.country}
+                        onChange={(e) => setProfileData({ ...profileData, country: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold mb-4">Employment Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div>
+                        <label className="text-sm font-medium">Employment Status</label>
+                        <Select
+                          value={profileData.employment_status}
+                          onValueChange={(value: EmploymentStatus) =>
+                            setProfileData({ ...profileData, employment_status: value })
+                          }
+                        >
+                          <SelectTrigger className="w-full cursor-pointer">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="employed">Employed</SelectItem>
+                            <SelectItem value="self_employed">Self Employed</SelectItem>
+                            <SelectItem value="unemployed">Unemployed</SelectItem>
+                            <SelectItem value="retired">Retired</SelectItem>
+                            <SelectItem value="student">Student</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <FormInput
+                        label="Annual Income"
+                        type="number"
+                        value={profileData.annual_income.toString()}
+                        onChange={(e) => setProfileData({ ...profileData, annual_income: Number(e.target.value) })}
+                      />
+                      {(profileData.employment_status === "employed" ||
+                        profileData.employment_status === "self_employed") && (
+                          <>
+                            <FormInput
+                              label="Employer Name"
+                              value={profileData.employer_name}
+                              onChange={(e) => setProfileData({ ...profileData, employer_name: e.target.value })}
+                            />
+                            <FormInput
+                              label="Date of Employment"
+                              type="date"
+                              value={profileData.date_of_employment}
+                              onChange={(e) => setProfileData({ ...profileData, date_of_employment: e.target.value })}
+                            />
+                            <FormInput
+                              label="Employer Address"
+                              value={profileData.employer_address}
+                              onChange={(e) => setProfileData({ ...profileData, employer_address: e.target.value })}
+                            />
+                            <FormInput
+                              label="Employer City"
+                              value={profileData.employer_city}
+                              onChange={(e) => setProfileData({ ...profileData, employer_city: e.target.value })}
+                            />
+                            <FormInput
+                              label="Employer State"
+                              value={profileData.employer_state}
+                              onChange={(e) => setProfileData({ ...profileData, employer_state: e.target.value })}
+                            />
+                          </>
+                        )}
+                    </div>
+                  </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">Role: {user.role.replace("_", " ")}</Badge>
-                    <Badge variant="outline">Member since: {new Date(user.dateJoined).getFullYear()}</Badge>
+                    <Badge variant="outline">Role: {user.role!.replace("_", " ")}</Badge>
+                    <Badge variant="outline">Member since: {new Date(user.date_joined).getFullYear()}</Badge>
                   </div>
                   <Button type="submit" disabled={isLoading}>
                     {isLoading ? "Updating..." : "Update Profile"}
                   </Button>
                 </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="next-of-kin">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Next of Kin</CardTitle>
+                  <Dialog open={isAddingNextOfKin} onOpenChange={setIsAddingNextOfKin}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Next of Kin
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Add Next of Kin</DialogTitle>
+                        <DialogDescription>Add a new next of kin to your profile</DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          <div>
+                            <label className="text-sm font-medium" htmlFor="nok_title">Title</label>
+                            <Select
+                              value={newNextOfKin.title}
+                              onValueChange={(value: Salutation) => setNewNextOfKin({ ...newNextOfKin, title: value })}
+                            >
+                              <SelectTrigger className="w-full cursor-pointer">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="mr">Mr.</SelectItem>
+                                <SelectItem value="mrs">Mrs.</SelectItem>
+                                <SelectItem value="miss">Miss</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="hidden md:block"></div>
+                          <div className="hidden lg:block"></div>
+                          <FormInput
+                            label="First Name"
+                            id="nok_first_name"
+                            value={newNextOfKin.first_name}
+                            onChange={(e) => setNewNextOfKin({ ...newNextOfKin, first_name: e.target.value })}
+                            required
+                          />
+                          <FormInput
+                            id="nok_middle_name"
+                            label="Middle Name"
+                            value={newNextOfKin.other_names}
+                            onChange={(e) => setNewNextOfKin({ ...newNextOfKin, other_names: e.target.value })}
+                          />
+                          <FormInput
+                            id="nok_last_name"
+                            label="Last Name"
+                            value={newNextOfKin.last_name}
+                            onChange={(e) => setNewNextOfKin({ ...newNextOfKin, last_name: e.target.value })}
+                            required
+                          />
+                          <FormInput
+                            id="nok_date_of_birth"
+                            label="Date of Birth"
+                            type="date"
+                            value={newNextOfKin.date_of_birth}
+                            onChange={(e) => setNewNextOfKin({ ...newNextOfKin, date_of_birth: e.target.value })}
+                            className="lg:p-1"
+                            required
+                          />
+                          <div>
+                            <label className="text-sm font-medium" htmlFor="nok_gender">Gender</label>
+                            <Select
+                              value={newNextOfKin.gender}
+                              onValueChange={(value: Gender) => setNewNextOfKin({ ...newNextOfKin, gender: value })}
+                            >
+                              <SelectTrigger className="w-full cursor-pointer">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="male">Male</SelectItem>
+                                <SelectItem value="female">Female</SelectItem>
+                                <SelectItem value="other">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormInput
+                            id="nok_relationship"
+                            label="Relationship"
+                            value={newNextOfKin.relationship}
+                            onChange={(e) => setNewNextOfKin({ ...newNextOfKin, relationship: e.target.value })}
+                            placeholder="e.g., Spouse, Parent, Sibling"
+                            required
+                          />
+                          <FormInput
+                            id="nok_phone_number"
+                            label="Phone Number"
+                            type="tel"
+                            value={newNextOfKin.phone_number}
+                            onChange={(e) => setNewNextOfKin({ ...newNextOfKin, phone_number: e.target.value })}
+                            required
+                          />
+                        </div>
+                        <FormInput
+                          id="nok_email_address"
+                          label="Email Address"
+                          type="email"
+                          value={newNextOfKin.email_address}
+                          onChange={(e) => setNewNextOfKin({ ...newNextOfKin, email_address: e.target.value })}
+                        />
+                        <FormInput
+                          id="nok_address"
+                          label="Address"
+                          value={newNextOfKin.address}
+                          onChange={(e) => setNewNextOfKin({ ...newNextOfKin, address: e.target.value })}
+                          required
+                        />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormInput
+                            id="nok_city"
+                            label="City"
+                            value={newNextOfKin.city}
+                            onChange={(e) => setNewNextOfKin({ ...newNextOfKin, city: e.target.value })}
+                            required
+                          />
+                          <FormInput
+                            id="nok_country"
+                            label="Country"
+                            value={newNextOfKin.country}
+                            onChange={(e) => setNewNextOfKin({ ...newNextOfKin, country: e.target.value })}
+                            required
+                          />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="nok_is_primary"
+                            checked={newNextOfKin.is_primary}
+                            onChange={(e) => setNewNextOfKin({ ...newNextOfKin, is_primary: e.target.checked })}
+                            className="rounded border-gray-300 cursor-pointer"
+                          />
+                          <label htmlFor="nok_is_primary" className="text-sm font-medium cursor-pointer">
+                            Set as primary next of kin
+                          </label>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsAddingNextOfKin(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={handleAddNextOfKin}>Add Next of Kin</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {nextOfKinList.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No next of kin added yet</p>
+                    <p className="text-sm text-muted-foreground">Add your emergency contacts and beneficiaries</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {nextOfKinList.map((kin) => (
+                      <div key={kin.id} className="border rounded-lg p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold">
+                                {kin.title}. {kin.first_name} {kin.last_name}
+                              </h3>
+                              {kin.is_primary && <Badge variant="default">Primary</Badge>}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {kin.relationship} • {kin.phone_number}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {kin.address}, {kin.city}, {kin.country}
+                            </p>
+                            {kin.email_address && <p className="text-sm text-muted-foreground">{kin.email_address}</p>}
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRemoveNextOfKin(kin.id)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
