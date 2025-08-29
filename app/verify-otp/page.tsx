@@ -7,11 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useAuthStore } from '@/stores/auth-store'
+import { useProfileStore } from '@/stores/profile-store'
 import { Shield, Clock, Mail } from 'lucide-react'
 
 export default function VerifyOTPPage() {
+  const expiryTime = 2;
   const [otp, setOtp] = useState('')
-  const [timeLeft, setTimeLeft] = useState(60*5) // 1 minute countdown
+  const [timeLeft, setTimeLeft] = useState(expiryTime) // 1 minute countdown
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [canResend, setCanResend] = useState(false)
@@ -20,6 +22,7 @@ export default function VerifyOTPPage() {
   const searchParams = useSearchParams()
   const email = searchParams.get('email')
   const { verifyOtp, resendOtp } = useAuthStore()
+  const { getProfile } = useProfileStore()
 
   // Countdown timer
   useEffect(() => {
@@ -37,6 +40,13 @@ export default function VerifyOTPPage() {
       router.push('/login')
     }
   }, [email, router])
+  
+  // Verify otp
+  useEffect(() => {
+    if(otp.length == 6){
+      handleVerifyOTP();
+    }
+  }, [otp]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -56,6 +66,7 @@ export default function VerifyOTPPage() {
     try {
       await verifyOtp({otp: otp})
       router.push('/dashboard')
+      getProfile();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Invalid OTP. Please try again.')
     } finally {
@@ -66,10 +77,9 @@ export default function VerifyOTPPage() {
   const handleResendOTP = async () => {
     setIsLoading(true)
     setError('')
-
     try {
       await resendOtp(email!)
-      setTimeLeft(60)
+      setTimeLeft(expiryTime)
       setCanResend(false)
       setOtp('')
     } catch (err: any) {
