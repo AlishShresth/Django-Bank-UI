@@ -20,9 +20,11 @@ export function ProtectedRoute({
   const router = useRouter();
 
   useEffect(() => {
+    const route = window.location.pathname;
     if (!isLoading && !isAuthenticated) {
       router.push('/login');
     }
+    router.push(route);
   }, [isAuthenticated, isLoading, router]);
 
   if (isLoading) {

@@ -82,7 +82,8 @@ export type EmploymentStatus =
 
 export interface ProfileState {
   profile: Profile | null;
-  next_of_kin: NextOfKin[] | null;
+  next_of_kin_list: NextOfKin[] | null;
+  next_of_kin: NextOfKin | null;
   isLoading: boolean;
 }
 
