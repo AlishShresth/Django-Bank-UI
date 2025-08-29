@@ -168,11 +168,3 @@
     background-color: var(--color-warning-foreground);
   }
 }
-
-html{
-  overflow: hidden;
-}
-
-body{
-  overflow: auto
-}
