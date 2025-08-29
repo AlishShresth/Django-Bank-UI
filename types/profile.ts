@@ -34,9 +34,11 @@ export interface Profile {
   signature_photo_url?: string;
   is_complete_with_next_of_kin(): boolean;
   created_at: string;
+  next_of_kin?: NextOfKin[];
 }
 
 export interface NextOfKin {
+  id: string | null;
   profile: Profile;
   title: Salutation;
   first_name: string;
@@ -87,7 +89,7 @@ export interface ProfileState {
 export interface ProfileData  {
   title: Salutation;
   first_name: string;
-  middle_name: string;
+  middle_name?: string;
   last_name: string;
   email: string;
   gender: Gender;
@@ -98,19 +100,20 @@ export interface ProfileData  {
   means_of_identification: IdentificationMeans;
   id_issue_date: string;
   id_expiry_date: string;
-  passport_number: string;
+  passport_number?: string;
   nationality: string;
   phone_number: string;
   address: string;
   city: string;
   country: string;
   employment_status: EmploymentStatus;
-  employer_name: string;
+  employer_name?: string;
   annual_income: number;
-  date_of_employment: string;
-  employer_address: string;
-  employer_city: string;
-  employer_state: string;
+  date_of_employment?: string;
+  employer_address?: string;
+  employer_city?: string;
+  employer_state?: string;
   account_currency: string;
   account_type: string;
+  next_of_kin?: NextOfKin[];
 };

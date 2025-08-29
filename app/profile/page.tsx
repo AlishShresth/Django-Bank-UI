@@ -22,27 +22,10 @@ import {
 } from "@/components/ui/dialog"
 import { User, Shield, Bell, Key, Smartphone, CheckCircle, Plus, Trash2, Users } from "lucide-react"
 import { useAuthStore } from "@/stores/auth-store"
-import type { Salutation, Gender, MaritalStatus, IdentificationMeans, EmploymentStatus, ProfileData, Profile } from "@/types/profile"
+import type { Salutation, Gender, MaritalStatus, IdentificationMeans, EmploymentStatus, ProfileData, Profile, NextOfKin } from "@/types/profile"
 import type { User as UserType } from "@/types/auth"
 import { useProfileStore } from "@/stores/profile-store"
 import { apiClient } from "@/lib/axios"
-
-interface NextOfKinData {
-  id: string
-  title: Salutation
-  first_name: string
-  last_name: string
-  other_names?: string
-  date_of_birth: string
-  gender: Gender
-  relationship: string
-  email_address?: string
-  phone_number: string
-  address: string
-  city: string
-  country: string
-  is_primary: boolean
-}
 
 const generateProfileData = (profile: Profile | null, user: UserType | null): ProfileData => ({
   title: profile?.title || "mr" as Salutation,
@@ -73,33 +56,38 @@ const generateProfileData = (profile: Profile | null, user: UserType | null): Pr
   employer_state: profile?.employer_state || "",
   account_currency: profile?.account_currency || "nepalese_rupees",
   account_type: profile?.account_type || "savings",
+  next_of_kin: profile?.next_of_kin || [] as NextOfKin[],
 })
+
+const generateNewNextOfKin = (profile: Profile) => ({
+  profile: profile!,
+  id: null,
+  title: "mr" as Salutation,
+  first_name: "",
+  last_name: "",
+  other_names: "",
+  date_of_birth: "",
+  gender: "male" as Gender,
+  relationship: "",
+  email_address: "",
+  phone_number: "",
+  address: "",
+  city: "",
+  country: "",
+  is_primary: false,
+});
 
 export default function ProfilePage() {
   const { user } = useAuthStore()
-  const { profile, next_of_kin, getProfile } = useProfileStore()
+  const { profile, next_of_kin, updateProfile, setProfile } = useProfileStore()
   const [isLoading, setIsLoading] = useState(false)
   const [notification, setNotification] = useState<string | null>(null)
 
   const [profileData, setProfileData] = useState<ProfileData>(generateProfileData(profile, user));
 
-  const [nextOfKinList, setNextOfKinList] = useState<NextOfKinData[]>([])
+  const [nextOfKinList, setNextOfKinList] = useState<NextOfKin[]>(generateProfileData(profile, user).next_of_kin!)
   const [isAddingNextOfKin, setIsAddingNextOfKin] = useState(false)
-  const [newNextOfKin, setNewNextOfKin] = useState<Omit<NextOfKinData, "id">>({
-    title: "mr",
-    first_name: "",
-    last_name: "",
-    other_names: "",
-    date_of_birth: "",
-    gender: "male",
-    relationship: "",
-    email_address: "",
-    phone_number: "",
-    address: "",
-    city: "",
-    country: "",
-    is_primary: false,
-  })
+  const [newNextOfKin, setNewNextOfKin] = useState<Omit<NextOfKin, "id">>(generateNewNextOfKin(profile!));
 
   const [securitySettings, setSecuritySettings] = useState({
     twoFactorEnabled: false,
@@ -113,8 +101,8 @@ export default function ProfilePage() {
     e.preventDefault()
     setIsLoading(true)
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      setProfile(profileData);
+      await updateProfile(profile!);
       setNotification("Profile updated successfully")
       setTimeout(() => setNotification(null), 3000)
     } catch (error) {
@@ -127,21 +115,7 @@ export default function ProfilePage() {
   const handleAddNextOfKin = () => {
     const id = Date.now().toString()
     setNextOfKinList([...nextOfKinList, { ...newNextOfKin, id }])
-    setNewNextOfKin({
-      title: "mr",
-      first_name: "",
-      last_name: "",
-      other_names: "",
-      date_of_birth: "",
-      gender: "male",
-      relationship: "",
-      email_address: "",
-      phone_number: "",
-      address: "",
-      city: "",
-      country: "",
-      is_primary: false,
-    })
+    setNewNextOfKin(generateNewNextOfKin(profile!))
     setIsAddingNextOfKin(false)
     setNotification("Next of kin added successfully")
     setTimeout(() => setNotification(null), 3000)
@@ -167,7 +141,7 @@ export default function ProfilePage() {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="animate-spin rounded-full h-24 w-24 border-b-2 border-primary"></div>
         </div>
       </DashboardLayout>
     )
@@ -222,7 +196,7 @@ export default function ProfilePage() {
                         value={profileData.title}
                         onValueChange={(value: Salutation) => setProfileData({ ...profileData, title: value })}
                       >
-                        <SelectTrigger className="w-full" >
+                        <SelectTrigger className="w-full cursor-pointer" >
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -246,7 +220,6 @@ export default function ProfilePage() {
                       label="Middle Name"
                       value={profileData.middle_name}
                       onChange={(e) => setProfileData({ ...profileData, middle_name: e.target.value })}
-                      required
                     />
                     <FormInput
                       id="last_name"
@@ -264,12 +237,12 @@ export default function ProfilePage() {
                       required
                     />
                     <div>
-                      <label className="text-sm font-medium" htmlFor="gender">Gender</label>
+                      <label className="text-sm font-medium" htmlFor="gender">Gender<span className="text-red-500">*</span></label>
                       <Select
                         value={profileData.gender}
                         onValueChange={(value: Gender) => setProfileData({ ...profileData, gender: value })}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full cursor-pointer">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -309,7 +282,7 @@ export default function ProfilePage() {
                           setProfileData({ ...profileData, marital_status: value })
                         }
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full cursor-pointer">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -328,13 +301,12 @@ export default function ProfilePage() {
                       <div>
                         <label htmlFor="means_of_identification" className="text-sm font-medium">Means of Identification</label>
                         <Select
-                          aria-labelledby="means_of_identification"
                           value={profileData.means_of_identification}
                           onValueChange={(value: IdentificationMeans) =>
                             setProfileData({ ...profileData, means_of_identification: value })
                           }
                         >
-                          <SelectTrigger className="w-full">
+                          <SelectTrigger className="w-full cursor-pointer">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -417,7 +389,7 @@ export default function ProfilePage() {
                             setProfileData({ ...profileData, employment_status: value })
                           }
                         >
-                          <SelectTrigger className="w-full">
+                          <SelectTrigger className="w-full cursor-pointer">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -498,14 +470,14 @@ export default function ProfilePage() {
                         <DialogDescription>Add a new next of kin to your profile</DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium">Title</label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          <div>
+                            <label className="text-sm font-medium" htmlFor="nok_title">Title</label>
                             <Select
                               value={newNextOfKin.title}
                               onValueChange={(value: Salutation) => setNewNextOfKin({ ...newNextOfKin, title: value })}
                             >
-                              <SelectTrigger>
+                              <SelectTrigger className="w-full cursor-pointer">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -515,39 +487,44 @@ export default function ProfilePage() {
                               </SelectContent>
                             </Select>
                           </div>
+                          <div className="hidden md:block"></div>
+                          <div className="hidden lg:block"></div>
                           <FormInput
                             label="First Name"
+                            id="nok_first_name"
                             value={newNextOfKin.first_name}
                             onChange={(e) => setNewNextOfKin({ ...newNextOfKin, first_name: e.target.value })}
                             required
                           />
                           <FormInput
+                            id="nok_middle_name"
+                            label="Middle Name"
+                            value={newNextOfKin.other_names}
+                            onChange={(e) => setNewNextOfKin({ ...newNextOfKin, other_names: e.target.value })}
+                          />
+                          <FormInput
+                            id="nok_last_name"
                             label="Last Name"
                             value={newNextOfKin.last_name}
                             onChange={(e) => setNewNextOfKin({ ...newNextOfKin, last_name: e.target.value })}
                             required
                           />
-                        </div>
-                        <FormInput
-                          label="Other Names (Optional)"
-                          value={newNextOfKin.other_names}
-                          onChange={(e) => setNewNextOfKin({ ...newNextOfKin, other_names: e.target.value })}
-                        />
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <FormInput
+                            id="nok_date_of_birth"
                             label="Date of Birth"
                             type="date"
                             value={newNextOfKin.date_of_birth}
                             onChange={(e) => setNewNextOfKin({ ...newNextOfKin, date_of_birth: e.target.value })}
+                            className="lg:p-1"
                             required
                           />
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium">Gender</label>
+                          <div>
+                            <label className="text-sm font-medium" htmlFor="nok_gender">Gender</label>
                             <Select
                               value={newNextOfKin.gender}
                               onValueChange={(value: Gender) => setNewNextOfKin({ ...newNextOfKin, gender: value })}
                             >
-                              <SelectTrigger>
+                              <SelectTrigger className="w-full cursor-pointer">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -560,6 +537,7 @@ export default function ProfilePage() {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <FormInput
+                            id="nok_relationship"
                             label="Relationship"
                             value={newNextOfKin.relationship}
                             onChange={(e) => setNewNextOfKin({ ...newNextOfKin, relationship: e.target.value })}
@@ -567,6 +545,7 @@ export default function ProfilePage() {
                             required
                           />
                           <FormInput
+                            id="nok_phone_number"
                             label="Phone Number"
                             type="tel"
                             value={newNextOfKin.phone_number}
@@ -575,12 +554,14 @@ export default function ProfilePage() {
                           />
                         </div>
                         <FormInput
-                          label="Email Address (Optional)"
+                          id="nok_email_address"
+                          label="Email Address"
                           type="email"
                           value={newNextOfKin.email_address}
                           onChange={(e) => setNewNextOfKin({ ...newNextOfKin, email_address: e.target.value })}
                         />
                         <FormInput
+                          id="nok_address"
                           label="Address"
                           value={newNextOfKin.address}
                           onChange={(e) => setNewNextOfKin({ ...newNextOfKin, address: e.target.value })}
@@ -588,12 +569,14 @@ export default function ProfilePage() {
                         />
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <FormInput
+                            id="nok_city"
                             label="City"
                             value={newNextOfKin.city}
                             onChange={(e) => setNewNextOfKin({ ...newNextOfKin, city: e.target.value })}
                             required
                           />
                           <FormInput
+                            id="nok_country"
                             label="Country"
                             value={newNextOfKin.country}
                             onChange={(e) => setNewNextOfKin({ ...newNextOfKin, country: e.target.value })}
@@ -603,12 +586,12 @@ export default function ProfilePage() {
                         <div className="flex items-center space-x-2">
                           <input
                             type="checkbox"
-                            id="is_primary"
+                            id="nok_is_primary"
                             checked={newNextOfKin.is_primary}
                             onChange={(e) => setNewNextOfKin({ ...newNextOfKin, is_primary: e.target.checked })}
-                            className="rounded border-gray-300"
+                            className="rounded border-gray-300 cursor-pointer"
                           />
-                          <label htmlFor="is_primary" className="text-sm font-medium">
+                          <label htmlFor="nok_is_primary" className="text-sm font-medium cursor-pointer">
                             Set as primary next of kin
                           </label>
                         </div>
