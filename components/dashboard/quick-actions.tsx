@@ -62,7 +62,7 @@ export function QuickActions() {
     },
   ]
 
-  const filteredActions = actions.filter((action) => hasPermission(user.role, action.permission))
+  const filteredActions = actions.filter((action) => hasPermission(user.role!, action.permission))
 
   if (filteredActions.length === 0) return null
 
@@ -72,7 +72,7 @@ export function QuickActions() {
         <CardTitle>Quick Actions</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4">
           {filteredActions.map((action) => {
             const Icon = action.icon
             return (
@@ -82,7 +82,7 @@ export function QuickActions() {
                     <Icon className="h-4 w-4" />
                     <span className="font-medium">{action.title}</span>
                   </div>
-                  <span className="text-xs text-muted-foreground text-left">{action.description}</span>
+                  <span className={`text-xs text-muted-foreground text-left ${action.variant == 'default' ? 'text-white/80' : ''}`}>{action.description}</span>
                 </Button>
               </Link>
             )
