@@ -1,80 +1,121 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type {
-  Profile,
-  NextOfKin,
-  ProfileState,
-} from '@/types/profile';
+import { persist, devtools } from 'zustand/middleware';
+import type { Profile, NextOfKin, ProfileState } from '@/types/profile';
 import { apiClient } from '@/lib/axios';
 
 interface ProfileStore extends ProfileState {
   getProfile: () => Promise<void>;
   updateProfile: (data: Profile) => Promise<void>;
-  getNextOfKin: () => Promise<void>;
-  updateNextOfKin: () => Promise<void>;
+  getNextOfKin: (id: string) => Promise<void>;
+  setNextOfKin: (data: NextOfKin) => Promise<void>;
+  updateNextOfKin: (data: NextOfKin) => Promise<void>;
   setLoading: (loading: boolean) => void;
+  setProfile: (profileData: any) => void;
 }
 
 export const useProfileStore = create<ProfileStore>()(
-  persist((set, get) => ({
-    profile: null,
-    next_of_kin: null,
-    isLoading: false,
+  devtools(
+    persist(
+      (set, get) => ({
+        profile: null,
+        next_of_kin_list: [] as NextOfKin[],
+        next_of_kin: null,
+        isLoading: false,
+        error: null,
 
-    getProfile: async () => {
-      set({ isLoading: true });
-      try {
-        const response = await apiClient.get(
-          '/v1/profiles/my-profile/'
-        );
-        set({ profile: response.data.profile });
-        console.log('response data', response.data.profile, get().profile);
-      } catch (error) {
-        set({ isLoading: false });
-        throw error;
+        getProfile: async () => {
+          set({ isLoading: true });
+          try {
+            const response = await apiClient.get('/v1/profiles/my-profile/');
+            set({ profile: response.data.profile });
+            set({ next_of_kin_list: response.data.profile.next_of_kin });
+          } catch (error) {
+            set({ isLoading: false });
+            throw error;
+          }
+        },
+
+        updateProfile: async (profile_data: Profile) => {
+          set({ isLoading: true });
+          try {
+            const response = await apiClient.patch(
+              '/v1/profiles/my-profile/',
+              profile_data
+            );
+            const { message, data } = response.data.profile;
+            set({ profile: data, isLoading: false });
+          } catch (error) {
+            set({ isLoading: false });
+            throw error;
+          }
+        },
+
+        getNextOfKin: async (id: string = '') => {
+          set({ isLoading: true });
+          try {
+            const response = await apiClient.get(
+              '/v1/profiles/my-profile/next-of-kin/' + id
+            );
+            if (id && id != '') {
+              const { next_of_kin } = response.data.next_of_kin;
+              set({ next_of_kin });
+            } else {
+              const { next_of_kin_list } = response.data.next_of_kin.results;
+              set({ next_of_kin_list });
+            }
+          } catch (error) {
+            set({ isLoading: false });
+            throw error;
+          }
+        },
+
+        setNextOfKin: async (data: NextOfKin) => {
+          set({ isLoading: true });
+          try {
+            const response = await apiClient.post(
+              '/v1/profiles/my-profile/next-of-kin/',
+              data
+            );
+            set({ isLoading: false, next_of_kin: response.data.next_of_kin, error: null });
+            get().next_of_kin_list?.push(response.data.next_of_kin);
+          } catch (error: any) {
+            set({ isLoading: false, error: {next_of_kin: error.response.data.next_of_kin} });
+            throw error.response.data.next_of_kin || error.response.data;
+          }
+        },
+
+        updateNextOfKin: async (data: NextOfKin) => {
+          set({ isLoading: true });
+          try {
+            const response = await apiClient.patch(
+              '/v1/profiles/my-profile/next-of-kin/',
+              data
+            );
+            set({ isLoading: false, error: null });
+          } catch (error: any) {
+            set({ isLoading: false, error: {next_of_kin: error.response.data.next_of_kin} });
+            throw error;
+          }
+        },
+
+        setLoading: (loading: boolean) => {
+          set({ isLoading: loading });
+        },
+
+        setProfile: (profileData: any) => {
+          set({ profile: profileData });
+        },
+      }),
+      {
+        name: 'profile-storage',
+        partialize: (state) => ({
+          profile: state.profile,
+          next_of_kin: state.next_of_kin,
+          next_of_kin_list: state.next_of_kin_list,
+          isLoading: state.isLoading,
+          error: state.error,
+        }),
       }
-    },
-
-    updateProfile: async (profile_data: Profile) => {
-      set({ isLoading: true });
-      try {
-        const response = await apiClient.patch(
-          '/v1/profiles/my-profile/',
-          profile_data
-        );
-        const { message, data } = response.data;
-        set({ profile: data, isLoading: false });
-      } catch (error) {
-        set({ isLoading: false });
-        throw error;
-      }
-    },
-
-    getNextOfKin: async () => {
-      set({ isLoading: true });
-      try {
-        const response = await apiClient.get(
-          '/v1/profiles/my-profile/next-of-kin/'
-        );
-        const { next_of_kin } = response.data.next_of_kin.results;
-        set({ next_of_kin, isLoading: false });
-      } catch (error) {
-        set({ isLoading: false });
-        throw error;
-      }
-    },
-
-    updateNextOfKin: async () => {},
-
-    setLoading: (loading: boolean) => {
-      set({ isLoading: loading });
-    },
-  }), {
-    name: 'profile-storage',
-    partialize: (state) => ({
-      profile: state.profile,
-      next_of_kin: state.next_of_kin,
-      isLoading: state.isLoading,
-    })
-  })
+    )
+  )
 );
