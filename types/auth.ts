@@ -17,6 +17,7 @@ export interface User {
   full_name?: string;
   is_locked_out?: boolean;
   has_role(roleName: string): boolean;
+  date_joined: string;
 }
 
 export interface AuthState {

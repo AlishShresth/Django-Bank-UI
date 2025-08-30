@@ -85,6 +85,7 @@ export interface ProfileState {
   next_of_kin_list: NextOfKin[] | null;
   next_of_kin: NextOfKin | null;
   isLoading: boolean;
+  error: Record<string, any> | null;
 }
 
 export interface ProfileData  {
