@@ -1,8 +1,9 @@
-import { User } from './auth';
-
 export interface Profile {
-  user: User;
   title: Salutation;
+  first_name?: string;
+  middle_name?: string;
+  last_name?: string;
+  email?: string;
   gender: Gender;
   date_of_birth: string;
   country_of_birth: string;
