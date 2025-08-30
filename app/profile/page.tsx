@@ -38,6 +38,9 @@ import {
   Trash2,
   Users,
   SquarePen,
+  Check,
+  AlertTriangle,
+  X,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
 import type {
@@ -129,9 +132,13 @@ export default function ProfilePage() {
 
   const [isAddingNextOfKin, setIsAddingNextOfKin] = useState(false);
   const [isUpdatingNextOfKin, setIsUpdatingNextOfKin] = useState(false);
-  const [newNextOfKin, setNewNextOfKin] = useState<Omit<NextOfKin, 'id'>>(
+  const [newNextOfKin, setNewNextOfKin] = useState<Partial<NextOfKin>>(
     generateNewNextOfKin(profile!)
   );
+
+  const [isConfirmingPrimary, setIsConfirmingPrimary] = useState(false);
+  const [pendingNextOfKin, setPendingNextOfKin] =
+    useState<Partial<NextOfKin> | null>(null);
 
   const [securitySettings, setSecuritySettings] = useState({
     twoFactorEnabled: false,
@@ -157,13 +164,15 @@ export default function ProfilePage() {
     }
   };
 
-  const handleAddNextOfKin = async (newNextOfKin: Omit<NextOfKin, 'id'>) => {
+  const proceedWithAddOrUpdateNextOfKin = async (
+    kinToAdd: Partial<NextOfKin>
+  ) => {
     try {
       if (isUpdatingNextOfKin) {
-        await updateNextOfKin(newNextOfKin as NextOfKin);
+        await updateNextOfKin(kinToAdd as NextOfKin);
         setNotification('Next of kin updated successfully');
       } else {
-        await setNextOfKin(newNextOfKin as NextOfKin);
+        await setNextOfKin(kinToAdd as NextOfKin);
         setNotification('Next of kin added successfully');
       }
     } catch (error) {
@@ -178,7 +187,28 @@ export default function ProfilePage() {
       setNewNextOfKin(generateNewNextOfKin(profile!));
       setIsAddingNextOfKin(false);
       setIsUpdatingNextOfKin(false);
+      setIsConfirmingPrimary(false);
+      setPendingNextOfKin(null);
     }
+  };
+
+  const handleConfirmPrimary = async () => {
+    if (pendingNextOfKin) {
+      await proceedWithAddOrUpdateNextOfKin(pendingNextOfKin);
+    }
+  };
+
+  const handleAddNextOfKin = async (newNextOfKin: Partial<NextOfKin>) => {
+    if (newNextOfKin.is_primary) {
+      const primaryKin = next_of_kin_list.find((kin) => kin.is_primary);
+      if (primaryKin && primaryKin.id !== newNextOfKin.id) {
+        setPendingNextOfKin(newNextOfKin);
+        setIsConfirmingPrimary(true);
+        setIsAddingNextOfKin(false); // Close the form dialog
+        return;
+      }
+    }
+    await proceedWithAddOrUpdateNextOfKin(newNextOfKin);
   };
 
   const handleRemoveNextOfKin = (id: string) => {
@@ -1206,6 +1236,73 @@ export default function ProfilePage() {
             </Card>
           </TabsContent>
         </Tabs>
+        <Dialog
+          open={isConfirmingPrimary}
+          onOpenChange={setIsConfirmingPrimary}
+        >
+          <DialogContent className="sm:max-w-md">
+            <div className="p-6">
+              <div className="flex items-center mb-4">
+                <AlertTriangle className="h-6 w-6 text-orange-500 mr-2" />
+                <DialogTitle className="text-xl font-semibold">
+                  Confirm Primary Next of Kin
+                </DialogTitle>
+              </div>
+
+              <DialogDescription className="mb-6 space-y-3">
+                <p>You're about to designate a new primary contact person.</p>
+
+                <div className="bg-gray-50 p-3 rounded-lg border-l-4 border-blue-400">
+                  <p className="text-sm font-medium">What this means:</p>
+                  <ul className="list-disc pl-5 mt-1 text-sm text-gray-600">
+                    <li>
+                      This contact will be prioritized for emergency
+                      notifications
+                    </li>
+                    <li>The previous primary contact will become secondary</li>
+                    <li>
+                      You can change this at any time in your profile settings
+                    </li>
+                  </ul>
+                </div>
+
+                {pendingNextOfKin && (
+                  <div className="mt-4 bg-gray-50 p-4 rounded-lg border border-blue-100">
+                    <p className="font-medium text-blue-600">
+                      Selected Contact:
+                    </p>
+                    <p className="ml-2">
+                      {pendingNextOfKin.first_name} {pendingNextOfKin.last_name}
+                    </p>
+                    <p className=" text-sm ml-2">
+                      {pendingNextOfKin.relationship}
+                    </p>
+                  </div>
+                )}
+              </DialogDescription>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <Button
+                variant="outline"
+                  onClick={() => {
+                    setIsConfirmingPrimary(false);
+                    setPendingNextOfKin(null);
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 flex items-center"
+                >
+                  <X className="h-4 w-4" /> Cancel
+                </Button>
+
+                <Button
+                variant="default"
+                  onClick={handleConfirmPrimary}
+                >
+                  <Check className="h-4 w-4" /> Confirm Primary
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
