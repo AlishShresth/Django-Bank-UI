@@ -49,19 +49,14 @@ import type {
   Profile,
   NextOfKin,
 } from '@/types/profile';
-import type { User as UserType } from '@/types/auth';
 import { useProfileStore } from '@/stores/profile-store';
-import { apiClient } from '@/lib/axios';
 
-const generateProfileData = (
-  profile: Profile | null,
-  user: UserType | null
-): ProfileData => ({
+const generateProfileData = (profile: Profile | null): ProfileData => ({
   title: profile?.title || ('mr' as Salutation),
-  first_name: user?.first_name || '',
-  middle_name: user?.middle_name || '',
-  last_name: user?.last_name || '',
-  email: user?.email || '',
+  first_name: profile?.first_name || '',
+  middle_name: profile?.middle_name || '',
+  last_name: profile?.last_name || '',
+  email: profile?.email || '',
   gender: profile?.gender || ('male' as Gender),
   date_of_birth: profile?.date_of_birth || '',
   country_of_birth: profile?.country_of_birth || '',
@@ -125,7 +120,7 @@ export default function ProfilePage() {
   const [notification, setNotification] = useState<string | null>(null);
 
   const [profileData, setProfileData] = useState<ProfileData>(
-    generateProfileData(profile, user)
+    generateProfileData(profile)
   );
 
   const [isAddingNextOfKin, setIsAddingNextOfKin] = useState(false);
@@ -147,7 +142,7 @@ export default function ProfilePage() {
     setIsLoading(true);
     try {
       setProfile(profileData);
-      await updateProfile(profile!);
+      await updateProfile();
       setNotification('Profile updated successfully');
       setTimeout(() => setNotification(null), 3000);
     } catch (error) {
@@ -184,8 +179,8 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
-    setProfileData(generateProfileData(profile, user));
-  }, [profile, user]);
+    setProfileData(generateProfileData(profile));
+  }, [profile]);
 
   if (!user) {
     return (
@@ -210,7 +205,7 @@ export default function ProfilePage() {
         </div>
 
         {notification && (
-          <Alert className="border-success bg-success/10">
+          <Alert className="border-success bg-success/10 my-2">
             <CheckCircle className="h-4 w-4 text-success" />
             <AlertDescription className="text-success">
               {notification}
@@ -505,6 +500,7 @@ export default function ProfilePage() {
                           })
                         }
                         required
+                        disabled
                       />
                       <FormInput
                         label="Phone Number"
@@ -670,6 +666,14 @@ export default function ProfilePage() {
                     {isLoading ? 'Updating...' : 'Update Profile'}
                   </Button>
                 </form>
+                {notification && (
+                  <Alert className="border-success bg-success/10 mt-4">
+                    <CheckCircle className="h-4 w-4 text-success" />
+                    <AlertDescription className="text-success">
+                      {notification}
+                    </AlertDescription>
+                  </Alert>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

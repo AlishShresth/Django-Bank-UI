@@ -5,7 +5,7 @@ import { apiClient } from '@/lib/axios';
 
 interface ProfileStore extends ProfileState {
   getProfile: () => Promise<void>;
-  updateProfile: (data: Profile) => Promise<void>;
+  updateProfile: () => Promise<void>;
   getNextOfKin: (id: string) => Promise<void>;
   setNextOfKin: (data: NextOfKin) => Promise<void>;
   updateNextOfKin: (data: NextOfKin) => Promise<void>;
@@ -35,17 +35,17 @@ export const useProfileStore = create<ProfileStore>()(
           }
         },
 
-        updateProfile: async (profile_data: Profile) => {
+        updateProfile: async () => {
           set({ isLoading: true });
           try {
             const response = await apiClient.patch(
               '/v1/profiles/my-profile/',
-              profile_data
+              get().profile
             );
-            const { message, data } = response.data.profile;
+            const { data } = response.data.profile;
             set({ profile: data, isLoading: false });
-          } catch (error) {
-            set({ isLoading: false });
+          } catch (error: any) {
+            set({ isLoading: false, error: {profile: error?.response?.data?.profile} });
             throw error;
           }
         },
