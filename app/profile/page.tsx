@@ -33,6 +33,7 @@ import {
   Key,
   Smartphone,
   CheckCircle,
+  CircleX,
   Plus,
   Trash2,
   Users,
@@ -118,6 +119,9 @@ export default function ProfilePage() {
   } = useProfileStore();
   const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
+  const [errorNotification, setErrorNotification] = useState<string | null>(
+    null
+  );
 
   const [profileData, setProfileData] = useState<ProfileData>(
     generateProfileData(profile)
@@ -144,27 +148,38 @@ export default function ProfilePage() {
       setProfile(profileData);
       await updateProfile();
       setNotification('Profile updated successfully');
-      setTimeout(() => setNotification(null), 3000);
     } catch (error) {
-      setNotification('Failed to update profile');
+      setErrorNotification('Failed to update profile');
     } finally {
+      setTimeout(() => setNotification(null), 3000);
+      setTimeout(() => setErrorNotification(null), 4000);
       setIsLoading(false);
     }
   };
 
   const handleAddNextOfKin = async (newNextOfKin: Omit<NextOfKin, 'id'>) => {
     try {
-      await setNextOfKin(newNextOfKin as NextOfKin);
+      if (isUpdatingNextOfKin) {
+        await updateNextOfKin(newNextOfKin as NextOfKin);
+        setNotification('Next of kin updated successfully');
+      } else {
+        await setNextOfKin(newNextOfKin as NextOfKin);
+        setNotification('Next of kin added successfully');
+      }
+    } catch (error) {
+      if (isUpdatingNextOfKin) {
+        setErrorNotification('Failed to update next of kin');
+      } else {
+        setErrorNotification('Failed to add next of kin');
+      }
+    } finally {
+      setTimeout(() => setNotification(null), 3000);
+      setTimeout(() => setErrorNotification(null), 4000);
       setNewNextOfKin(generateNewNextOfKin(profile!));
       setIsAddingNextOfKin(false);
-      setNotification('Next of kin added successfully');
-      setTimeout(() => setNotification(null), 3000);
-    } catch (error) {
-      setNotification('Failed to add next of kin');
+      setIsUpdatingNextOfKin(false);
     }
   };
-
-  const handleEditNextOfKin = async (nextOfKin: NextOfKin) => {};
 
   const handleRemoveNextOfKin = (id: string) => {
     // setNextOfKinList(nextOfKinList.filter((kin) => kin.id !== id))
@@ -209,6 +224,14 @@ export default function ProfilePage() {
             <CheckCircle className="h-4 w-4 text-success" />
             <AlertDescription className="text-success">
               {notification}
+            </AlertDescription>
+          </Alert>
+        )}
+        {errorNotification && (
+          <Alert className="border-destructive bg-destructive/10 my-2">
+            <CircleX className="h-4 w-4 text-destructive" />
+            <AlertDescription className="text-destructive">
+              {errorNotification}
             </AlertDescription>
           </Alert>
         )}
@@ -671,6 +694,14 @@ export default function ProfilePage() {
                     <CheckCircle className="h-4 w-4 text-success" />
                     <AlertDescription className="text-success">
                       {notification}
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {errorNotification && (
+                  <Alert className="border-destructive bg-destructive/10 my-2">
+                    <CircleX className="h-4 w-4 text-destructive" />
+                    <AlertDescription className="text-destructive">
+                      {errorNotification}
                     </AlertDescription>
                   </Alert>
                 )}

@@ -11,7 +11,7 @@ import { useProfileStore } from '@/stores/profile-store'
 import { Shield, Clock, Mail } from 'lucide-react'
 
 export default function VerifyOTPPage() {
-  const expiryTime = 2;
+  const expiryTime = 3 * 60;
   const [otp, setOtp] = useState('')
   const [timeLeft, setTimeLeft] = useState(expiryTime) // 1 minute countdown
   const [isLoading, setIsLoading] = useState(false)
