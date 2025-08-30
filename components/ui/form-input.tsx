@@ -15,8 +15,8 @@ const FormInput = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="space-y-2">
         {label && (
-          <label className="text-sm font-medium text-foreground" htmlFor={props.id}>
-            {label}
+          <label className="flex text-sm font-medium text-foreground" htmlFor={props.id}>
+            {label} <span className={`text-red-500 ${props.required ? 'block': 'hidden'}`}>*</span>
           </label>
         )}
         <input
