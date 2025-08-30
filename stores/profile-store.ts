@@ -45,7 +45,10 @@ export const useProfileStore = create<ProfileStore>()(
             const { data } = response.data.profile;
             set({ profile: data, isLoading: false });
           } catch (error: any) {
-            set({ isLoading: false, error: {profile: error?.response?.data?.profile} });
+            set({
+              isLoading: false,
+              error: { profile: error?.response?.data?.profile },
+            });
             throw error;
           }
         },
@@ -76,10 +79,17 @@ export const useProfileStore = create<ProfileStore>()(
               '/v1/profiles/my-profile/next-of-kin/',
               data
             );
-            set({ isLoading: false, next_of_kin: response.data.next_of_kin, error: null });
+            set({
+              isLoading: false,
+              next_of_kin: response.data.next_of_kin,
+              error: null,
+            });
             get().next_of_kin_list?.push(response.data.next_of_kin);
           } catch (error: any) {
-            set({ isLoading: false, error: {next_of_kin: error.response.data.next_of_kin} });
+            set({
+              isLoading: false,
+              error: { next_of_kin: error.response.data.next_of_kin },
+            });
             throw error.response.data.next_of_kin || error.response.data;
           }
         },
@@ -88,12 +98,29 @@ export const useProfileStore = create<ProfileStore>()(
           set({ isLoading: true });
           try {
             const response = await apiClient.patch(
-              '/v1/profiles/my-profile/next-of-kin/',
+              `/v1/profiles/my-profile/next-of-kin/${data.id}/`,
               data
             );
-            set({ isLoading: false, error: null });
+            const updatedNextOfKin = response.data.next_of_kin;
+
+            // Update the next_of_kin_list by replacing the old item with the updated one
+            set((state) => {
+              const newList =
+                state.next_of_kin_list?.map((item) =>
+                  item.id === updatedNextOfKin.id ? updatedNextOfKin : item
+                ) ?? [];
+
+              return {
+                next_of_kin_list: newList,
+                isLoading: false,
+                error: null,
+              };
+            });
           } catch (error: any) {
-            set({ isLoading: false, error: {next_of_kin: error.response.data.next_of_kin} });
+            set({
+              isLoading: false,
+              error: { next_of_kin: error.response.data.next_of_kin },
+            });
             throw error;
           }
         },
