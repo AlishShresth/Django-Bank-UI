@@ -11,7 +11,7 @@ export function ActivityMonitor() {
 
     const logActivity = (activity: string) => {
       // In production, send to analytics/security service
-      console.log(`[Security] User ${user.id} - ${activity}`, {
+      console.log(`[Security] User ${user.full_name} - ${activity}`, {
         timestamp: new Date().toISOString(),
         userAgent: navigator.userAgent,
         url: window.location.href,
