@@ -102,20 +102,7 @@ export const useProfileStore = create<ProfileStore>()(
               data
             );
             const updatedNextOfKin = response.data.next_of_kin;
-
-            // Update the next_of_kin_list by replacing the old item with the updated one
-            set((state) => {
-              const newList =
-                state.next_of_kin_list?.map((item) =>
-                  item.id === updatedNextOfKin.id ? updatedNextOfKin : item
-                ) ?? [];
-
-              return {
-                next_of_kin_list: newList,
-                isLoading: false,
-                error: null,
-              };
-            });
+            get().getProfile();
           } catch (error: any) {
             set({
               isLoading: false,
