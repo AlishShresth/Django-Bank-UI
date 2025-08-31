@@ -1,9 +1,10 @@
 'use client';
 
 import type React from 'react';
-import { Sidebar } from './sidebar';
-import { ProtectedRoute } from '@/components/auth/protected-route';
 import { useEffect } from 'react';
+import { BankingSidebar } from './banking-sidebar';
+import { ProtectedRoute } from '@/components/auth/protected-route';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -36,14 +37,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }, []);
   return (
     <ProtectedRoute>
-      <div className="flex h-screen bg-background">
-        <div className="w-64 flex-shrink-0">
-          <Sidebar />
-        </div>
-        <main className="flex-1 overflow-auto">
-          <div className="p-6">{children}</div>
-        </main>
-      </div>
+      <SidebarProvider>
+        <BankingSidebar />
+        <SidebarInset>
+          <div className="p-4 sm:p-6">{children}</div>
+        </SidebarInset>
+      </SidebarProvider>
     </ProtectedRoute>
   );
 }
