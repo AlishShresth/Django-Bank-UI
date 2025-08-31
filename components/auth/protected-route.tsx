@@ -23,8 +23,9 @@ export function ProtectedRoute({
     const route = window.location.pathname;
     if (!isLoading && !isAuthenticated) {
       router.push('/login');
+    } else {
+      router.push(route);
     }
-    router.push(route);
   }, [isAuthenticated, isLoading, router]);
 
   if (isLoading) {
