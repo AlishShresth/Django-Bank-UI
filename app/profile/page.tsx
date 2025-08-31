@@ -200,7 +200,7 @@ export default function ProfilePage() {
 
   const handleAddNextOfKin = async (newNextOfKin: Partial<NextOfKin>) => {
     if (newNextOfKin.is_primary) {
-      const primaryKin = next_of_kin_list.find((kin) => kin.is_primary);
+      const primaryKin = next_of_kin_list!.find((kin) => kin.is_primary);
       if (primaryKin && primaryKin.id !== newNextOfKin.id) {
         setPendingNextOfKin(newNextOfKin);
         setIsConfirmingPrimary(true);
