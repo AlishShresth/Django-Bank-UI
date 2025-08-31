@@ -44,7 +44,7 @@ const sidebarTrigger = (
 )
 
   return (
-    <Sidebar variant="inset" collapsible="icon">
+    <Sidebar variant="floating" collapsible="icon">
       <SidebarHeader>
         <div className="flex items-center gap-10 px-2">
           <div className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
