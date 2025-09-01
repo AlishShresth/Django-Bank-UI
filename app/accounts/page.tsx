@@ -7,71 +7,35 @@ import { CreateAccountDialog } from "@/components/accounts/create-account-dialog
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, Filter } from "lucide-react"
-import type { Account } from "@/types/banking"
+import type { BankAccount } from "@/types/banking"
 import { useAuthStore } from "@/stores/auth-store"
-import { hasPermission } from "@/lib/rbac"
-
-// Mock data - replace with actual API calls
-const mockAccounts: Account[] = [
-  {
-    id: "1",
-    accountNumber: "1234567890",
-    accountType: "checking",
-    balance: 8234.5,
-    currency: "USD",
-    status: "active",
-    createdAt: "2024-01-15T10:00:00Z",
-    userId: "user1",
-  },
-  {
-    id: "2",
-    accountNumber: "1234567891",
-    accountType: "savings",
-    balance: 4111.17,
-    currency: "USD",
-    status: "active",
-    createdAt: "2024-01-10T10:00:00Z",
-    userId: "user1",
-  },
-  {
-    id: "3",
-    accountNumber: "1234567892",
-    accountType: "business",
-    balance: 45678.9,
-    currency: "USD",
-    status: "active",
-    createdAt: "2024-01-05T10:00:00Z",
-    userId: "user2",
-  },
-  {
-    id: "4",
-    accountNumber: "1234567893",
-    accountType: "checking",
-    balance: 1500.0,
-    currency: "USD",
-    status: "frozen",
-    createdAt: "2024-01-01T10:00:00Z",
-    userId: "user3",
-  },
-]
+import { apiClient } from "@/lib/axios"
 
 export default function AccountsPage() {
-  const [accounts, setAccounts] = useState<Account[]>([])
-  const [filteredAccounts, setFilteredAccounts] = useState<Account[]>([])
+  const [accounts, setAccounts] = useState<BankAccount[]>([])
+  const [filteredAccounts, setFilteredAccounts] = useState<BankAccount[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
   const [isLoading, setIsLoading] = useState(true)
 
   const { user } = useAuthStore()
+  
+  const fetchUserAccounts = async() => {
+    try{
+      setIsLoading(true);
+      const response = await apiClient.get('/v1/accounts/accounts');
+      setAccounts(response.data.account_list.results)
+      setFilteredAccounts(response.data.account_list.results)
+    } catch (err){
+      console.error(err);
+    } finally{
+      setIsLoading(false);
+    }
+  }
 
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setAccounts(mockAccounts)
-      setFilteredAccounts(mockAccounts)
-      setIsLoading(false)
-    }, 1000)
+    fetchUserAccounts();
   }, [])
 
   useEffect(() => {
@@ -80,17 +44,17 @@ export default function AccountsPage() {
     if (searchTerm) {
       filtered = filtered.filter(
         (account) =>
-          account.accountNumber.includes(searchTerm) ||
-          account.accountType.toLowerCase().includes(searchTerm.toLowerCase()),
+          account.account_number.includes(searchTerm) ||
+          account.account_type.toLowerCase().includes(searchTerm.toLowerCase()),
       )
     }
 
     if (statusFilter !== "all") {
-      filtered = filtered.filter((account) => account.status === statusFilter)
+      filtered = filtered.filter((account) => account.account_status === statusFilter)
     }
 
     if (typeFilter !== "all") {
-      filtered = filtered.filter((account) => account.accountType === typeFilter)
+      filtered = filtered.filter((account) => account.account_type === typeFilter)
     }
 
     setFilteredAccounts(filtered)
@@ -98,33 +62,30 @@ export default function AccountsPage() {
 
   const handleCreateAccount = async (accountData: any) => {
     // Simulate API call
-    const newAccount: Account = {
-      id: Date.now().toString(),
-      accountNumber: Math.random().toString().slice(2, 12),
-      accountType: accountData.accountType,
-      balance: accountData.initialDeposit,
-      currency: "USD",
-      status: "active",
-      createdAt: new Date().toISOString(),
-      userId: "new-user",
-    }
+    // const newAccount: Partial<BankAccount> = {
+    //   account_number: Math.random().toString().slice(2, 12),
+    //   account_type: accountData.accountType,
+    //   currency: "nepalese_rupees",
+    //   account_status: "active",
+    //   is_primary: 
+    // }
 
-    setAccounts([...accounts, newAccount])
+    // setAccounts([...accounts, newAccount])
   }
 
   const handleFreezeAccount = async (accountId: string) => {
-    setAccounts(
-      accounts.map((account) => (account.id === accountId ? { ...account, status: "frozen" as const } : account)),
-    )
+    // setAccounts(
+    //   accounts.map((account) => (account.id === accountId ? { ...account, status: "frozen" as const } : account)),
+    // )
   }
 
   const handleUnfreezeAccount = async (accountId: string) => {
-    setAccounts(
-      accounts.map((account) => (account.id === accountId ? { ...account, status: "active" as const } : account)),
-    )
+    // setAccounts(
+    //   accounts.map((account) => (account.id === accountId ? { ...account, status: "active" as const } : account)),
+    // )
   }
 
-  const canManageAccounts = user && hasPermission(user.role, "manage_customer_accounts")
+  const canManageAccounts = user && ["account_teller", "branch_manager", "account_executive"].includes(user.role!)
 
   if (isLoading) {
     return (
@@ -168,8 +129,8 @@ export default function AccountsPage() {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="frozen">Frozen</SelectItem>
-                <SelectItem value="closed">Closed</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="blocked">Blocked</SelectItem>
               </SelectContent>
             </Select>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -178,10 +139,9 @@ export default function AccountsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="checking">Checking</SelectItem>
+                <SelectItem value="current">Current</SelectItem>
                 <SelectItem value="savings">Savings</SelectItem>
-                <SelectItem value="business">Business</SelectItem>
-                <SelectItem value="credit">Credit</SelectItem>
+                <SelectItem value="fixed">Fixed</SelectItem>
               </SelectContent>
             </Select>
           </div>
