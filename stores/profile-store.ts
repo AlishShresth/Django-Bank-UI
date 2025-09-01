@@ -9,8 +9,10 @@ interface ProfileStore extends ProfileState {
   getNextOfKin: (id: string) => Promise<void>;
   setNextOfKin: (data: NextOfKin) => Promise<void>;
   updateNextOfKin: (data: NextOfKin) => Promise<void>;
+  deleteNextOfKin: (id: string) => Promise<void>;
   setLoading: (loading: boolean) => void;
   setProfile: (profileData: any) => void;
+  setError: (error: Record<string, any> | null) => void;
 }
 
 export const useProfileStore = create<ProfileStore>()(
@@ -112,12 +114,32 @@ export const useProfileStore = create<ProfileStore>()(
           }
         },
 
+        deleteNextOfKin: async (id: string) => {
+          set({ isLoading: true });
+          try {
+            const response = await apiClient.delete(
+              `/v1/profiles/my-profile/next-of-kin/${id}/`
+            );
+            get().getProfile();
+          } catch (error: any) {
+            set({
+              isLoading: false,
+              error: { next_of_kin: error.response.data.errors },
+            });
+            throw error.response.data.errors;
+          }
+        },
+
         setLoading: (loading: boolean) => {
           set({ isLoading: loading });
         },
 
         setProfile: (profileData: any) => {
           set({ profile: profileData });
+        },
+
+        setError: (error: Record<string, any> | null) => {
+          set({ error });
         },
       }),
       {

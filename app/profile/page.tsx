@@ -117,8 +117,10 @@ export default function ProfilePage() {
     setNextOfKin,
     getNextOfKin,
     updateNextOfKin,
+    deleteNextOfKin,
     next_of_kin_list,
     error,
+    setError,
   } = useProfileStore();
   const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
@@ -211,10 +213,16 @@ export default function ProfilePage() {
     await proceedWithAddOrUpdateNextOfKin(newNextOfKin);
   };
 
-  const handleRemoveNextOfKin = (id: string) => {
-    // setNextOfKinList(nextOfKinList.filter((kin) => kin.id !== id))
-    setNotification('Next of kin removed');
-    setTimeout(() => setNotification(null), 3000);
+  const handleRemoveNextOfKin = async (id: string) => {
+    try {
+      await deleteNextOfKin(id);
+      setNotification('Next of kin removed');
+    } catch (err: any) {
+      setErrorNotification(err);
+    } finally {
+      setTimeout(() => setNotification(null), 3000);
+      setTimeout(() => setErrorNotification(null), 5000);
+    }
   };
 
   const handleSecurityUpdate = async (setting: string, value: boolean) => {
@@ -1250,10 +1258,14 @@ export default function ProfilePage() {
               </div>
 
               <DialogDescription className="mb-6 space-y-3">
-                <p>You're about to designate a new primary contact person.</p>
+                <span>
+                  You're about to designate a new primary contact person.
+                </span>
+                <br />
 
                 <div className="bg-gray-50 p-3 rounded-lg border-l-4 border-blue-400">
-                  <p className="text-sm font-medium">What this means:</p>
+                  <span className="text-sm font-medium">What this means:</span>
+                  <br />
                   <ul className="list-disc pl-5 mt-1 text-sm text-gray-600">
                     <li>
                       This contact will be prioritized for emergency
@@ -1268,22 +1280,24 @@ export default function ProfilePage() {
 
                 {pendingNextOfKin && (
                   <div className="mt-4 bg-gray-50 p-4 rounded-lg border border-blue-100">
-                    <p className="font-medium text-blue-600">
+                    <span className="font-medium text-blue-600">
                       Selected Contact:
-                    </p>
-                    <p className="ml-2">
+                    </span>
+                    <br />
+                    <span className="ml-2">
                       {pendingNextOfKin.first_name} {pendingNextOfKin.last_name}
-                    </p>
-                    <p className=" text-sm ml-2">
+                    </span>
+                    <br />
+                    <span className=" text-sm ml-2">
                       {pendingNextOfKin.relationship}
-                    </p>
+                    </span>
                   </div>
                 )}
               </DialogDescription>
 
               <div className="flex justify-end gap-3 pt-2">
                 <Button
-                variant="outline"
+                  variant="outline"
                   onClick={() => {
                     setIsConfirmingPrimary(false);
                     setPendingNextOfKin(null);
@@ -1293,10 +1307,7 @@ export default function ProfilePage() {
                   <X className="h-4 w-4" /> Cancel
                 </Button>
 
-                <Button
-                variant="default"
-                  onClick={handleConfirmPrimary}
-                >
+                <Button variant="default" onClick={handleConfirmPrimary}>
                   <Check className="h-4 w-4" /> Confirm Primary
                 </Button>
               </div>
