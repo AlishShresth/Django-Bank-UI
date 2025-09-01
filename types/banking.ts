@@ -1,7 +1,7 @@
 import { User } from './auth';
 
 export interface BankAccount {
-  id: number;
+  id: string;
   account_number: string;
   account_balance: number;
   currency: AccountCurrency;
@@ -15,7 +15,7 @@ export interface BankAccount {
   verification_note?: string;
   fully_activated: boolean;
   interest_rate: number;
-  annual_interest_rate: number;
+  annual_interest_rate?: number;
   apply_daily_interest(): number;
   clean(): void;
   save(): void;

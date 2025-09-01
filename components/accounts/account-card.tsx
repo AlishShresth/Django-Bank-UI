@@ -6,12 +6,11 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Eye, MoreHorizontal } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import type { Account } from "@/types/banking"
+import type { BankAccount } from "@/types/banking"
 import { useAuthStore } from "@/stores/auth-store"
-import { hasPermission } from "@/lib/rbac"
 
 interface AccountCardProps {
-  account: Account
+  account: BankAccount
   onFreeze?: (accountId: string) => void
   onUnfreeze?: (accountId: string) => void
 }
@@ -21,11 +20,11 @@ export function AccountCard({ account, onFreeze, onUnfreeze }: AccountCardProps)
 
   const getAccountTypeColor = (type: string) => {
     switch (type) {
-      case "checking":
+      case "current":
         return "bg-blue-100 text-blue-800"
       case "savings":
         return "bg-green-100 text-green-800"
-      case "business":
+      case "fixed":
         return "bg-purple-100 text-purple-800"
       case "credit":
         return "bg-orange-100 text-orange-800"
@@ -38,9 +37,9 @@ export function AccountCard({ account, onFreeze, onUnfreeze }: AccountCardProps)
     switch (status) {
       case "active":
         return "bg-success text-success-foreground"
-      case "frozen":
+      case "blocked":
         return "bg-warning text-warning-foreground"
-      case "closed":
+      case "inactive":
         return "bg-destructive text-destructive-foreground"
       default:
         return "bg-gray-100 text-gray-800"
@@ -48,32 +47,39 @@ export function AccountCard({ account, onFreeze, onUnfreeze }: AccountCardProps)
   }
 
   const formatBalance = (balance: number, currency: string) => {
+    if(currency == "pound_sterling"){
+      currency = "gbp"
+    } else if (currency == "us_dollars"){
+      currency = "usd"
+    } else {
+      currency = "npr"
+    }
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: currency,
+      currency: "npr",
     }).format(balance)
   }
 
-  const canManageAccount = user && hasPermission(user.role, "manage_customer_accounts")
+  const canManageAccount = user && ["account_teller", "branch_manager", "account_executive"].includes(user.role!)
 
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="space-y-1">
           <CardTitle className="text-base font-medium">
-            {account.accountType.charAt(0).toUpperCase() + account.accountType.slice(1)} Account
+            {account.account_type.charAt(0).toUpperCase() + account.account_type.slice(1)} Account
           </CardTitle>
-          <p className="text-sm text-muted-foreground">****{account.accountNumber.slice(-4)}</p>
+          <p className="text-sm text-muted-foreground">****{account.account_number.slice(-4)}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge className={getAccountTypeColor(account.accountType)}>{account.accountType}</Badge>
-          <Badge className={getStatusColor(account.status)}>{account.status}</Badge>
+          <Badge className={getAccountTypeColor(account.account_type)}>{account.account_type}</Badge>
+          <Badge className={getStatusColor(account.account_status)}>{account.account_status}</Badge>
         </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           <div>
-            <p className="text-2xl font-bold text-foreground">{formatBalance(account.balance, account.currency)}</p>
+            <p className="text-2xl font-bold text-foreground">{formatBalance(account.account_balance, account.currency)}</p>
             <p className="text-xs text-muted-foreground">Available Balance</p>
           </div>
 
@@ -93,10 +99,10 @@ export function AccountCard({ account, onFreeze, onUnfreeze }: AccountCardProps)
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {account.status === "active" && onFreeze && (
+                  {account.account_status === "active" && onFreeze && (
                     <DropdownMenuItem onClick={() => onFreeze(account.id)}>Freeze Account</DropdownMenuItem>
                   )}
-                  {account.status === "frozen" && onUnfreeze && (
+                  {account.account_status === "inactive" && onUnfreeze && (
                     <DropdownMenuItem onClick={() => onUnfreeze(account.id)}>Unfreeze Account</DropdownMenuItem>
                   )}
                   <DropdownMenuItem>View Statements</DropdownMenuItem>
