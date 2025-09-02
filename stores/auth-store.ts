@@ -15,9 +15,12 @@ interface AuthStore extends AuthState {
   verifyOtp: (otp: OTP) => Promise<void>;
   resendOtp: (email: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
+  activateAccountWithUid: (uid: string, token: string) => Promise<void>;
+  resendActivation: (email?: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
   setLoading: (loading: boolean) => void;
+  setMessage: (message: string | null) => void;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -29,6 +32,7 @@ export const useAuthStore = create<AuthStore>()(
         profile: null,
         isAuthenticated: false,
         isLoading: false,
+        message: null,
 
         login: async (credentials: LoginCredentials) => {
           set({ isLoading: true });
@@ -37,8 +41,13 @@ export const useAuthStore = create<AuthStore>()(
               '/v1/auth/login/',
               credentials
             );
-            const { success, email } = response.data;
-            set({ email, isLoading: false });
+            const { success, email, message } = response.data;
+            if (response.status == 202) {
+              set({ message });
+            } else {
+              set({ email });
+            }
+            set({ isLoading: false });
           } catch (error) {
             set({ isLoading: false });
             throw error;
@@ -82,6 +91,32 @@ export const useAuthStore = create<AuthStore>()(
           }
         },
 
+        activateAccountWithUid: async (uid: string, token: string) => {
+          set({ isLoading: true });
+          try {
+            await apiClient.post('/v1/auth/users/activation/', { uid, token });
+            set({ isLoading: false });
+          } catch (error) {
+            set({ isLoading: false });
+            throw error;
+          }
+        },
+
+        resendActivation: async () => {
+          const email = get().user?.email;
+          if(!email){
+            throw "User email not found"
+          }
+          set({ isLoading: true });
+          try {
+            await apiClient.post('/auth/users/resend_activation/', { email });
+            set({ isLoading: false });
+          } catch (error) {
+            set({ isLoading: false });
+            throw error;
+          }
+        },
+
         logout: async () => {
           set({ isLoading: true });
           try {
@@ -114,6 +149,10 @@ export const useAuthStore = create<AuthStore>()(
         setLoading: (loading: boolean) => {
           set({ isLoading: loading });
         },
+
+        setMessage: (message: string | null) => {
+          set({ message });
+        },
       }),
       {
         name: 'auth-storage',
@@ -122,6 +161,7 @@ export const useAuthStore = create<AuthStore>()(
           email: state.email,
           isAuthenticated: state.isAuthenticated,
           isLoading: state.isLoading,
+          message: state.message,
         }),
       }
     )
