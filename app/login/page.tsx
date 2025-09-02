@@ -18,7 +18,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({})
 
-  const { login, isLoading } = useAuthStore()
+  const { login, isLoading, message, setMessage } = useAuthStore()
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -49,8 +49,13 @@ export default function LoginPage() {
     if (!validateForm()) return
 
     try {
-      await login({ email, password })
-      router.push(`/verify-otp?email=${encodeURIComponent(email)}`)
+      await login({ email, password });
+      if(message){
+        setMessage(null);
+        router.push(`/verify-otp?message=activate`)
+      } else { 
+        router.push(`/verify-otp?email=${encodeURIComponent(email)}`)
+      }
     } catch (error: any) {
       setErrors({
         general: error.response?.data?.error || "Invalid email or password. Please try again.",
