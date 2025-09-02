@@ -38,9 +38,11 @@ export interface RegisterData {
   re_password: string;
   id_no: number;
   first_name: string;
+  middle_name?: string;
   last_name: string;
   security_question: string;
   security_answer: string;
+  phone_number?: string | null;
 }
 
 export interface LoginResponse {
