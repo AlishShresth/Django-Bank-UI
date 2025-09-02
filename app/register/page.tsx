@@ -42,7 +42,7 @@ export default function RegisterPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
-  const { register, isLoading } = useAuthStore();
+  const { register, isLoading, resendActivation } = useAuthStore();
   const router = useRouter();
 
   const validateForm = () => {
@@ -180,10 +180,10 @@ export default function RegisterPage() {
                 </p>
                 <Button
                   variant="ghost"
-                  onClick={() => setRegistrationSuccess(false)}
+                  onClick={() => resendActivation}
                   className="text-blue-600 hover:text-blue-700"
                 >
-                  Try registering again
+                  Resend Activation Email
                 </Button>
                 <div className="pt-4">
                   <Button
