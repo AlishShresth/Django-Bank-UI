@@ -18,6 +18,7 @@ export interface User {
   is_locked_out?: boolean;
   has_role(roleName: string): boolean;
   date_joined: string;
+  last_login?: string;
 }
 
 export interface AuthState {
@@ -25,6 +26,7 @@ export interface AuthState {
   email: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  message: string | null;
 }
 
 export interface LoginCredentials {
@@ -49,6 +51,7 @@ export interface LoginResponse {
   success?: string;
   email?: string;
   error?: string;
+  message?: string;
 }
 
 export type UserRole =
@@ -67,5 +70,5 @@ export type SecurityQuestions =
   | 'childhood_friend';
 
 export interface OTP {
-  otp: string
+  otp: string;
 }

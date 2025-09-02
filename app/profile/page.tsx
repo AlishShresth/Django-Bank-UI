@@ -234,6 +234,12 @@ export default function ProfilePage() {
   useEffect(() => {
     setProfileData(generateProfileData(profile));
   }, [profile]);
+  
+  useEffect(() => {
+    if(user?.last_login == null){
+      setNotification('Welcome to SecureBank. Please update the required profile information, add a primary next of kin then proceed to create a bank account.');
+    }
+  }, []);
 
   if (!user) {
     return (
