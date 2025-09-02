@@ -1,4 +1,5 @@
 import { User } from './auth';
+import { Transaction } from './transaction';
 
 export interface BankAccount {
   id: string;
@@ -20,6 +21,7 @@ export interface BankAccount {
   clean(): void;
   save(): void;
   created_at: string;
+  recent_transactions?: Transaction[];
 }
 
 export type AccountType = 'current' | 'savings' | 'fixed';

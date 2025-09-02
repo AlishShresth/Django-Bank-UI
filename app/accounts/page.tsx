@@ -1,64 +1,74 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from "react"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { AccountCard } from "@/components/accounts/account-card"
-import { CreateAccountDialog } from "@/components/accounts/create-account-dialog"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Filter } from "lucide-react"
-import type { BankAccount } from "@/types/banking"
-import { useAuthStore } from "@/stores/auth-store"
-import { apiClient } from "@/lib/axios"
+import { useState, useEffect } from 'react';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { AccountCard } from '@/components/accounts/account-card';
+import { CreateAccountDialog } from '@/components/accounts/create-account-dialog';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Search, Filter } from 'lucide-react';
+import type { BankAccount } from '@/types/banking';
+import { useAuthStore } from '@/stores/auth-store';
+import { apiClient } from '@/lib/axios';
 
 export default function AccountsPage() {
-  const [accounts, setAccounts] = useState<BankAccount[]>([])
-  const [filteredAccounts, setFilteredAccounts] = useState<BankAccount[]>([])
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [typeFilter, setTypeFilter] = useState("all")
-  const [isLoading, setIsLoading] = useState(true)
+  const [accounts, setAccounts] = useState<BankAccount[]>([]);
+  const [filteredAccounts, setFilteredAccounts] = useState<BankAccount[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [isLoading, setIsLoading] = useState(true);
 
-  const { user } = useAuthStore()
-  
-  const fetchUserAccounts = async() => {
-    try{
+  const { user } = useAuthStore();
+
+  const fetchUserAccounts = async () => {
+    try {
       setIsLoading(true);
       const response = await apiClient.get('/v1/accounts/accounts');
-      setAccounts(response.data.account_list.results)
-      setFilteredAccounts(response.data.account_list.results)
-    } catch (err){
+      setAccounts(response.data.account_list.results);
+      setFilteredAccounts(response.data.account_list.results);
+    } catch (err) {
       console.error(err);
-    } finally{
+    } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
     fetchUserAccounts();
-  }, [])
+  }, []);
 
   useEffect(() => {
-    let filtered = accounts
+    let filtered = accounts;
 
     if (searchTerm) {
       filtered = filtered.filter(
         (account) =>
           account.account_number.includes(searchTerm) ||
-          account.account_type.toLowerCase().includes(searchTerm.toLowerCase()),
-      )
+          account.account_type.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
 
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((account) => account.account_status === statusFilter)
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(
+        (account) => account.account_status === statusFilter
+      );
     }
 
-    if (typeFilter !== "all") {
-      filtered = filtered.filter((account) => account.account_type === typeFilter)
+    if (typeFilter !== 'all') {
+      filtered = filtered.filter(
+        (account) => account.account_type === typeFilter
+      );
     }
 
-    setFilteredAccounts(filtered)
-  }, [accounts, searchTerm, statusFilter, typeFilter])
+    setFilteredAccounts(filtered);
+  }, [accounts, searchTerm, statusFilter, typeFilter]);
 
   const handleCreateAccount = async (accountData: any) => {
     // Simulate API call
@@ -67,34 +77,37 @@ export default function AccountsPage() {
     //   account_type: accountData.accountType,
     //   currency: "nepalese_rupees",
     //   account_status: "active",
-    //   is_primary: 
+    //   is_primary:
     // }
-
     // setAccounts([...accounts, newAccount])
-  }
+  };
 
   const handleFreezeAccount = async (accountId: string) => {
     // setAccounts(
     //   accounts.map((account) => (account.id === accountId ? { ...account, status: "frozen" as const } : account)),
     // )
-  }
+  };
 
   const handleUnfreezeAccount = async (accountId: string) => {
     // setAccounts(
     //   accounts.map((account) => (account.id === accountId ? { ...account, status: "active" as const } : account)),
     // )
-  }
+  };
 
-  const canManageAccounts = user && ["account_teller", "branch_manager", "account_executive"].includes(user.role!)
+  const canManageAccounts =
+    user &&
+    ['account_teller', 'branch_manager', 'account_executive'].includes(
+      user.role!
+    );
 
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="flex items-center justify-center h-80">
+          <div className="animate-spin rounded-full h-24 w-24 border-b-2 border-primary"></div>
         </div>
       </DashboardLayout>
-    )
+    );
   }
 
   return (
@@ -104,10 +117,14 @@ export default function AccountsPage() {
           <div>
             <h1 className="text-3xl font-bold text-foreground">Accounts</h1>
             <p className="text-muted-foreground">
-              {canManageAccounts ? "Manage customer accounts" : "View your account information"}
+              {canManageAccounts
+                ? 'Manage customer accounts'
+                : 'View your account information'}
             </p>
           </div>
-          {canManageAccounts && <CreateAccountDialog onCreateAccount={handleCreateAccount} />}
+          {canManageAccounts && (
+            <CreateAccountDialog onCreateAccount={handleCreateAccount} />
+          )}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4">
@@ -149,7 +166,9 @@ export default function AccountsPage() {
 
         {filteredAccounts.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">No accounts found matching your criteria.</p>
+            <p className="text-muted-foreground">
+              No accounts found matching your criteria.
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -158,12 +177,14 @@ export default function AccountsPage() {
                 key={account.id}
                 account={account}
                 onFreeze={canManageAccounts ? handleFreezeAccount : undefined}
-                onUnfreeze={canManageAccounts ? handleUnfreezeAccount : undefined}
+                onUnfreeze={
+                  canManageAccounts ? handleUnfreezeAccount : undefined
+                }
               />
             ))}
           </div>
         )}
       </div>
     </DashboardLayout>
-  )
+  );
 }

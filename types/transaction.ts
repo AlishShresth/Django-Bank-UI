@@ -1,5 +1,5 @@
-import { User } from "./auth";
-import { BankAccount } from "./banking";
+import { User } from './auth';
+import { AccountCurrency, BankAccount } from './banking';
 
 export interface Transaction {
   id: number;
@@ -10,6 +10,7 @@ export interface Transaction {
   sender?: User;
   receiver_account?: BankAccount;
   sender_account?: BankAccount;
+  currency?: AccountCurrency;
   status: string;
   transaction_type: string;
   created_at: string;
