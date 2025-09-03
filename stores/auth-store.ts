@@ -11,16 +11,18 @@ import type {
 import { apiClient } from '@/lib/axios';
 
 interface AuthStore extends AuthState {
-  login: (credentials: LoginCredentials) => Promise<void>;
+  login: (
+    credentials: LoginCredentials
+  ) => Promise<{ needsActivation: boolean }>;
   verifyOtp: (otp: OTP) => Promise<void>;
   resendOtp: (email: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   activateAccountWithUid: (uid: string, token: string) => Promise<void>;
-  resendActivation: (email?: string) => Promise<void>;
+  resendActivation: (email: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
   setLoading: (loading: boolean) => void;
-  setMessage: (message: string | null) => void;
+  getUser: () => User | null;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -41,13 +43,15 @@ export const useAuthStore = create<AuthStore>()(
               '/v1/auth/login/',
               credentials
             );
-            const { success, email, message } = response.data;
+            const { email } = response.data;
             if (response.status == 202) {
-              set({ message });
+              set({ isLoading: false });
+              return { needsActivation: true };
             } else {
               set({ email });
+              set({ isLoading: false });
+              return { needsActivation: false };
             }
-            set({ isLoading: false });
           } catch (error) {
             set({ isLoading: false });
             throw error;
@@ -58,8 +62,7 @@ export const useAuthStore = create<AuthStore>()(
           set({ isLoading: true });
           try {
             const response = await apiClient.post('/v1/auth/verify-otp/', otp);
-            const { user } = response.data;
-            set({ isLoading: false, user, isAuthenticated: true });
+            set({ isLoading: false, user: response.data.user, isAuthenticated: true });
           } catch (error) {
             set({ isLoading: false, isAuthenticated: false, user: null });
             throw error;
@@ -102,14 +105,15 @@ export const useAuthStore = create<AuthStore>()(
           }
         },
 
-        resendActivation: async () => {
-          const email = get().user?.email;
-          if(!email){
-            throw "User email not found"
-          }
-          set({ isLoading: true });
+        resendActivation: async (email: string) => {
           try {
-            await apiClient.post('/auth/users/resend_activation/', { email });
+            if (!email) {
+              throw 'User email not found';
+            }
+            set({ isLoading: true });
+            await apiClient.post('/v1/auth/users/resend_activation/', {
+              email,
+            });
             set({ isLoading: false });
           } catch (error) {
             set({ isLoading: false });
@@ -149,10 +153,10 @@ export const useAuthStore = create<AuthStore>()(
         setLoading: (loading: boolean) => {
           set({ isLoading: loading });
         },
-
-        setMessage: (message: string | null) => {
-          set({ message });
-        },
+        
+        getUser: () => {
+          return get().user;
+        }
       }),
       {
         name: 'auth-storage',
@@ -161,7 +165,6 @@ export const useAuthStore = create<AuthStore>()(
           email: state.email,
           isAuthenticated: state.isAuthenticated,
           isLoading: state.isLoading,
-          message: state.message,
         }),
       }
     )

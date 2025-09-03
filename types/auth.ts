@@ -26,7 +26,6 @@ export interface AuthState {
   email: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  message: string | null;
 }
 
 export interface LoginCredentials {

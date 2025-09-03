@@ -21,7 +21,7 @@ export interface Profile {
   employment_status: EmploymentStatus;
   employer_name?: string;
   annual_income: number;
-  date_of_employment?: string;
+  date_of_employment: string | null;
   employer_address?: string;
   employer_city?: string;
   employer_state?: string;
@@ -36,6 +36,7 @@ export interface Profile {
   is_complete_with_next_of_kin(): boolean;
   created_at: string;
   next_of_kin?: NextOfKin[];
+  last_login?: string;
 }
 
 export interface NextOfKin {
@@ -89,7 +90,7 @@ export interface ProfileState {
   error: Record<string, any> | null;
 }
 
-export interface ProfileData  {
+export interface ProfileData {
   title: Salutation;
   first_name: string;
   middle_name?: string;
@@ -112,11 +113,11 @@ export interface ProfileData  {
   employment_status: EmploymentStatus;
   employer_name?: string;
   annual_income: number;
-  date_of_employment?: string;
+  date_of_employment: string | null;
   employer_address?: string;
   employer_city?: string;
   employer_state?: string;
   account_currency: string;
   account_type: string;
   next_of_kin?: NextOfKin[];
-};
+}

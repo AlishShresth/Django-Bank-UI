@@ -17,8 +17,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({})
-
-  const { login, isLoading, message, setMessage } = useAuthStore()
+  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuthStore()
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -44,19 +44,21 @@ export default function LoginPage() {
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
+    setIsLoading(true);
     e.preventDefault()
-
+    
     if (!validateForm()) return
-
+    
     try {
-      await login({ email, password });
-      if(message){
-        setMessage(null);
-        router.push(`/verify-otp?message=activate`)
+      const {needsActivation} = await login({ email, password });
+      setIsLoading(false);
+      if(needsActivation){
+        router.push(`/verify-otp?activation=needed&email=${encodeURIComponent(email)}`)
       } else { 
         router.push(`/verify-otp?email=${encodeURIComponent(email)}`)
       }
     } catch (error: any) {
+      setIsLoading(false);
       setErrors({
         general: error.response?.data?.error || "Invalid email or password. Please try again.",
       })

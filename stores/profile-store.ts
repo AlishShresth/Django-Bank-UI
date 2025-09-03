@@ -49,7 +49,7 @@ export const useProfileStore = create<ProfileStore>()(
           } catch (error: any) {
             set({
               isLoading: false,
-              error: { profile: error?.response?.data?.profile },
+              error: { profile: error?.response?.data?.errors },
             });
             throw error;
           }
