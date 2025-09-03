@@ -1,170 +1,284 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { useAuthStore } from '@/stores/auth-store'
-import { useProfileStore } from '@/stores/profile-store'
-import { Shield, Clock, Mail } from 'lucide-react'
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from '@/components/ui/input-otp';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAuthStore } from '@/stores/auth-store';
+import { useProfileStore } from '@/stores/profile-store';
+import { Shield, Clock, Mail } from 'lucide-react';
 
 export default function VerifyOTPPage() {
   const expiryTime = 3 * 60;
-  const [otp, setOtp] = useState('')
-  const [timeLeft, setTimeLeft] = useState(expiryTime) // 1 minute countdown
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [canResend, setCanResend] = useState(false)
+  const [otp, setOtp] = useState('');
+  const [timeLeft, setTimeLeft] = useState(expiryTime); // 1 minute countdown
+  const [isLoading, setIsLoading] = useState(false);
+  const [notification, setNotification] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [canResend, setCanResend] = useState(false);
 
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const email = searchParams.get('email')
-  const { verifyOtp, resendOtp } = useAuthStore()
-  const { getProfile } = useProfileStore()
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const email = searchParams.get('email');
+  const activation = searchParams.get('activation');
+  const { verifyOtp, resendOtp, getUser, resendActivation } = useAuthStore();
+  const { getProfile } = useProfileStore();
 
   // Countdown timer
   useEffect(() => {
+    // skip timer if in activation mode
+    if (activation) return;
+
     if (timeLeft > 0) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000)
-      return () => clearTimeout(timer)
+      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+      return () => clearTimeout(timer);
     } else {
-      setCanResend(true)
+      setCanResend(true);
     }
-  }, [timeLeft])
+  }, [timeLeft, activation]);
 
   // Redirect if no email parameter
   useEffect(() => {
-    if (!email) {
-      router.push('/login')
+    if (!email && !activation) {
+      router.push('/login');
     }
-  }, [email, router])
-  
+  }, [email, activation, router]);
+
   // Verify otp
   useEffect(() => {
-    if(otp.length == 6){
+    if (activation) return;
+
+    if (otp.length == 6) {
       handleVerifyOTP();
     }
-  }, [otp]);
+  }, [otp, activation]);
+
+  if (!email && !activation) {
+    return null;
+  }
 
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const handleVerifyOTP = async () => {
     if (otp.length !== 6) {
-      setError('Please enter a valid 6-digit OTP')
-      return
+      setError('Please enter a valid 6-digit OTP');
+      return;
     }
 
-    setIsLoading(true)
-    setError('')
-
+    setIsLoading(true);
+    setError('');
     try {
-      await verifyOtp({otp: otp})
-      router.push('/dashboard')
+      await verifyOtp({ otp: otp });
+      const user = getUser();
+      if (user && user.last_login == null) {
+        router.push('/profile');
+      } else {
+        router.push('/dashboard');
+      }
       getProfile();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid OTP. Please try again.')
+      setError(err.response?.data?.message || 'Invalid OTP. Please try again.');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleResendOTP = async () => {
-    setIsLoading(true)
-    setError('')
+    setIsLoading(true);
+    setError('');
     try {
-      await resendOtp(email!)
-      setTimeLeft(expiryTime)
-      setCanResend(false)
-      setOtp('')
+      await resendOtp(email!);
+      setTimeLeft(expiryTime);
+      setCanResend(false);
+      setOtp('');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to resend OTP. Please try again.')
+      setError(
+        err.response?.data?.message || 'Failed to resend OTP. Please try again.'
+      );
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  if (!email) {
-    return null
-  }
+  const handleResendActivationEmail = async () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      await resendActivation(email!);
+      setIsLoading(false);
+      setNotification('Activation Link Sent');
+    } catch (err: any) {
+      setIsLoading(false);
+      setError(err);
+      setTimeout(() => {
+        setError(null);
+        router.push('/login');
+      }, 3000);
+    } finally {
+      setTimeout(() => setNotification(null), 3000);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-            <Shield className="w-6 h-6 text-blue-600" />
-          </div>
-          <CardTitle className="text-2xl font-bold text-gray-900">Verify Your Identity</CardTitle>
-          <CardDescription className="text-gray-600">
-            We've sent a 6-digit verification code to your email address
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="space-y-6">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-2 text-sm text-gray-600 mb-4">
-              <Mail className="w-4 h-4" />
-              <span className="font-medium">{email}</span>
+      {activation ? (
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+              <Shield className="w-6 h-6 text-blue-600" />
             </div>
-            <div className="flex justify-center">
-
-              <InputOTP
-                maxLength={6}
-                value={otp}
-                onChange={(value) => setOtp(value)}
+            <CardTitle className="text-2xl font-bold text-gray-900">
+              Activate Your Account
+            </CardTitle>
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            {notification && (
+              <Alert variant="default">
+                <AlertDescription>{notification}</AlertDescription>
+              </Alert>
+            )}
+            <CardDescription className="text-gray-600 mt-6">
+              We've sent an activation link to your email address
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 text-sm text-gray-600 mb-4">
+                <p>
+                  Please click on the activation link and activate your account
+                  before you login.
+                </p>
+              </div>
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-gray-600 mb-2">
+                Didn't receive the link?
+              </p>
+              <Button
+                variant="ghost"
+                onClick={handleResendActivationEmail}
+                disabled={isLoading}
+                className="text-blue-600 hover:text-blue-700"
               >
-                <InputOTPGroup >
-                  <InputOTPSlot index={0} className='justify-center h-12 w-10' />
-                  <InputOTPSlot index={1} className='justify-center h-12 w-10' />
-                  <InputOTPSlot index={2} className='justify-center h-12 w-10' />
-                  <InputOTPSlot index={3} className='justify-center h-12 w-10' />
-                  <InputOTPSlot index={4} className='justify-center h-12 w-10' />
-                  <InputOTPSlot index={5} className='justify-center h-12 w-10' />
-                </InputOTPGroup>
-              </InputOTP>
+                {isLoading
+                  ? 'Resending activation link...'
+                  : 'Resend Activation Link'}
+              </Button>
             </div>
-          </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+              <Shield className="w-6 h-6 text-blue-600" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-gray-900">
+              Verify Your Identity
+            </CardTitle>
+            <CardDescription className="text-gray-600">
+              We've sent a 6-digit verification code to your email address
+            </CardDescription>
+          </CardHeader>
 
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-2 text-sm text-gray-600 mb-4">
-              <Clock className="w-4 h-4" />
-              <span>Code expires in {formatTime(timeLeft)}</span>
+          <CardContent className="space-y-6">
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 text-sm text-gray-600 mb-4">
+                <Mail className="w-4 h-4" />
+                <span className="font-medium">{email}</span>
+              </div>
+              <div className="flex justify-center">
+                <InputOTP
+                  maxLength={6}
+                  value={otp}
+                  onChange={(value) => setOtp(value)}
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot
+                      index={0}
+                      className="justify-center h-12 w-10"
+                    />
+                    <InputOTPSlot
+                      index={1}
+                      className="justify-center h-12 w-10"
+                    />
+                    <InputOTPSlot
+                      index={2}
+                      className="justify-center h-12 w-10"
+                    />
+                    <InputOTPSlot
+                      index={3}
+                      className="justify-center h-12 w-10"
+                    />
+                    <InputOTPSlot
+                      index={4}
+                      className="justify-center h-12 w-10"
+                    />
+                    <InputOTPSlot
+                      index={5}
+                      className="justify-center h-12 w-10"
+                    />
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
             </div>
 
-            <Button
-              onClick={handleVerifyOTP}
-              disabled={isLoading || otp.length !== 6}
-              className="w-full bg-blue-600 hover:bg-blue-700"
-            >
-              {isLoading ? 'Verifying...' : 'Verify OTP'}
-            </Button>
-          </div>
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-          <div className="text-center">
-            <p className="text-sm text-gray-600 mb-2">Didn't receive the code?</p>
-            <Button
-              variant="ghost"
-              onClick={handleResendOTP}
-              disabled={!canResend || isLoading}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              {canResend ? 'Resend OTP' : `Resend in ${formatTime(timeLeft)}`}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 text-sm text-gray-600 mb-4">
+                <Clock className="w-4 h-4" />
+                <span>Code expires in {formatTime(timeLeft)}</span>
+              </div>
+
+              <Button
+                onClick={handleVerifyOTP}
+                disabled={isLoading || otp.length !== 6}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                {isLoading ? 'Verifying...' : 'Verify OTP'}
+              </Button>
+            </div>
+
+            <div className="text-center">
+              <p className="text-sm text-gray-600 mb-2">
+                Didn't receive the code?
+              </p>
+              <Button
+                variant="ghost"
+                onClick={handleResendOTP}
+                disabled={!canResend || isLoading}
+                className="text-blue-600 hover:text-blue-700"
+              >
+                {canResend ? 'Resend OTP' : `Resend in ${formatTime(timeLeft)}`}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
-  )
+  );
 }

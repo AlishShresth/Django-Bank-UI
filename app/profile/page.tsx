@@ -80,7 +80,7 @@ const generateProfileData = (profile: Profile | null): ProfileData => ({
     profile?.employment_status || ('employed' as EmploymentStatus),
   employer_name: profile?.employer_name || '',
   annual_income: profile?.annual_income || 0,
-  date_of_employment: profile?.date_of_employment || '',
+  date_of_employment: profile?.date_of_employment || null,
   employer_address: profile?.employer_address || '',
   employer_city: profile?.employer_city || '',
   employer_state: profile?.employer_state || '',
@@ -153,6 +153,7 @@ export default function ProfilePage() {
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
     try {
       setProfile(profileData);
       await updateProfile();
@@ -160,8 +161,8 @@ export default function ProfilePage() {
     } catch (error) {
       setErrorNotification('Failed to update profile');
     } finally {
-      setTimeout(() => setNotification(null), 3000);
-      setTimeout(() => setErrorNotification(null), 4000);
+      setTimeout(() => setNotification(null), 10000);
+      setTimeout(() => setErrorNotification(null), 10000);
       setIsLoading(false);
     }
   };
@@ -232,8 +233,20 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
+    setError(null);
     setProfileData(generateProfileData(profile));
   }, [profile]);
+
+  useEffect(() => {
+    if(!user && !profile) return;
+    
+    if ((user && user.last_login == null) || profile?.last_login==null) {
+      setNotification(
+        'Welcome to SecureBank. Please update the required profile information, add a primary next of kin then proceed to create a bank account.'
+      );
+      setTimeout(() => setNotification(null), 15000);
+    }
+  }, [user, profile]);
 
   if (!user) {
     return (
@@ -347,6 +360,7 @@ export default function ProfilePage() {
                         })
                       }
                       required
+                      error={error?.profile?.first_name}
                     />
                     <FormInput
                       id="middle_name"
@@ -370,6 +384,7 @@ export default function ProfilePage() {
                         })
                       }
                       required
+                      error={error?.profile?.last_name}
                     />
                     <FormInput
                       id="date_of_birth"
@@ -383,6 +398,7 @@ export default function ProfilePage() {
                         })
                       }
                       required
+                      error={error?.profile?.date_of_birth}
                     />
                     <div>
                       <label className="text-sm font-medium" htmlFor="gender">
@@ -415,6 +431,7 @@ export default function ProfilePage() {
                           nationality: e.target.value,
                         })
                       }
+                      error={error?.profile?.nationality}
                       required
                     />
                     <FormInput
@@ -427,6 +444,7 @@ export default function ProfilePage() {
                           country_of_birth: e.target.value,
                         })
                       }
+                      error={error?.profile?.country_of_birth}
                       required
                     />
                     <FormInput
@@ -439,6 +457,7 @@ export default function ProfilePage() {
                           place_of_birth: e.target.value,
                         })
                       }
+                      error={error?.profile?.place_of_birth}
                       required
                     />
                     <div>
@@ -517,6 +536,8 @@ export default function ProfilePage() {
                             passport_number: e.target.value,
                           })
                         }
+                        error={error?.profile?.passport_number}
+                        required
                       />
                       <div className="hidden lg:block"></div>
                       <FormInput
@@ -529,6 +550,7 @@ export default function ProfilePage() {
                             id_issue_date: e.target.value,
                           })
                         }
+                        error={error?.profile?.id_issue_date}
                         required
                       />
                       <FormInput
@@ -541,6 +563,7 @@ export default function ProfilePage() {
                             id_expiry_date: e.target.value,
                           })
                         }
+                        error={error?.profile?.id_expiry_date}
                         required
                       />
                     </div>
@@ -573,6 +596,7 @@ export default function ProfilePage() {
                             phone_number: e.target.value,
                           })
                         }
+                        error={error?.profile?.phone_number}
                         required
                       />
                       <div className="hidden lg:block"></div>
@@ -585,6 +609,7 @@ export default function ProfilePage() {
                             address: e.target.value,
                           })
                         }
+                        error={error?.profile?.address}
                         required
                       />
                       <FormInput
@@ -596,6 +621,7 @@ export default function ProfilePage() {
                             city: e.target.value,
                           })
                         }
+                        error={error?.profile?.city}
                         required
                       />
                       <FormInput
@@ -607,6 +633,7 @@ export default function ProfilePage() {
                             country: e.target.value,
                           })
                         }
+                        error={error?.profile?.country}
                         required
                       />
                     </div>
@@ -656,6 +683,7 @@ export default function ProfilePage() {
                             annual_income: Number(e.target.value),
                           })
                         }
+                        error={error?.profile?.annual_income}
                       />
                       {(profileData.employment_status === 'employed' ||
                         profileData.employment_status === 'self_employed') && (
@@ -669,6 +697,7 @@ export default function ProfilePage() {
                                 employer_name: e.target.value,
                               })
                             }
+                            error={error?.profile?.employer_name}
                           />
                           <FormInput
                             label="Date of Employment"
@@ -680,6 +709,7 @@ export default function ProfilePage() {
                                 date_of_employment: e.target.value,
                               })
                             }
+                            error={error?.profile?.date_of_employment}
                           />
                           <FormInput
                             label="Employer Address"
@@ -690,6 +720,7 @@ export default function ProfilePage() {
                                 employer_address: e.target.value,
                               })
                             }
+                            error={error?.profile?.employer_address}
                           />
                           <FormInput
                             label="Employer City"
@@ -700,6 +731,7 @@ export default function ProfilePage() {
                                 employer_city: e.target.value,
                               })
                             }
+                            error={error?.profile?.employer_city}
                           />
                           <FormInput
                             label="Employer State"
@@ -710,6 +742,7 @@ export default function ProfilePage() {
                                 employer_state: e.target.value,
                               })
                             }
+                            error={error?.profile?.employer_state}
                           />
                         </>
                       )}
@@ -727,22 +760,6 @@ export default function ProfilePage() {
                     {isLoading ? 'Updating...' : 'Update Profile'}
                   </Button>
                 </form>
-                {notification && (
-                  <Alert className="border-success bg-success/10 mt-4">
-                    <CheckCircle className="h-4 w-4 text-success" />
-                    <AlertDescription className="text-success">
-                      {notification}
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {errorNotification && (
-                  <Alert className="border-destructive bg-destructive/10 my-2">
-                    <CircleX className="h-4 w-4 text-destructive" />
-                    <AlertDescription className="text-destructive">
-                      {errorNotification}
-                    </AlertDescription>
-                  </Alert>
-                )}
               </CardContent>
             </Card>
           </TabsContent>

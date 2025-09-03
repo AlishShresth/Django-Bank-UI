@@ -15,19 +15,20 @@ export default function ActivateAccountPage() {
 
   const router = useRouter()
   const params = useParams()
+  const uid = params.uid as string
   const token = params.token as string
-  const { activateAccount, resendActivation } = useAuthStore()
+  const { activateAccountWithUid, resendActivation, user } = useAuthStore()
 
   useEffect(() => {
-    if (token) {
+    if (uid && token) {
       handleActivation()
     }
-  }, [token])
+  }, [uid, token])
 
   const handleActivation = async () => {
     try {
       setStatus("loading")
-      await activateAccount(token)
+      await activateAccountWithUid(uid, token)
       setStatus("success")
       setMessage("Your account has been successfully activated! You can now log in.")
 
@@ -51,8 +52,7 @@ export default function ActivateAccountPage() {
   const handleResendActivation = async () => {
     setIsResending(true)
     try {
-      // This would need the user's email - in a real app, you might store this in the URL or ask for it
-      await resendActivation()
+      await resendActivation(user!.email)
       setMessage("A new activation link has been sent to your email address.")
     } catch (err: any) {
       setMessage(err.response?.data?.message || "Failed to resend activation email.")
@@ -134,7 +134,7 @@ export default function ActivateAccountPage() {
               <p className="text-sm text-gray-600 mb-4">Redirecting to login page in 3 seconds...</p>
               <Button
                 onClick={() => router.push("/login?activated=true")}
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                className="w-full bg-blue-600 hover:bg-blue-700 cursor-pointer"
               >
                 Go to Login
               </Button>
@@ -146,11 +146,11 @@ export default function ActivateAccountPage() {
               <Button
                 onClick={handleResendActivation}
                 disabled={isResending}
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                className="w-full bg-blue-600 hover:bg-blue-700 cursor-pointer disabled:cursor-not-allowed"
               >
                 {isResending ? "Sending..." : "Send New Activation Link"}
               </Button>
-              <Button variant="ghost" onClick={() => router.push("/register")} className="w-full">
+              <Button variant="ghost" onClick={() => router.push("/register")} className="w-full cursor-pointer">
                 Back to Registration
               </Button>
             </div>
@@ -158,10 +158,10 @@ export default function ActivateAccountPage() {
 
           {status === "error" && (
             <div className="text-center space-y-3">
-              <Button onClick={handleActivation} className="w-full bg-blue-600 hover:bg-blue-700">
+              <Button onClick={handleActivation} className="w-full bg-blue-600 hover:bg-blue-700 cursor-pointer">
                 Try Again
               </Button>
-              <Button variant="ghost" onClick={() => router.push("/login")} className="w-full">
+              <Button variant="ghost" onClick={() => router.push("/login")} className="w-full cursor-pointer">
                 Back to Login
               </Button>
             </div>
