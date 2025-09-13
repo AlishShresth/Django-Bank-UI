@@ -85,12 +85,14 @@ export default function VerifyOTPPage() {
     setError('');
     try {
       await verifyOtp({ otp: otp });
-      const user = getUser();
-      if (user && user.last_login == null) {
-        router.push('/profile');
-      } else {
+      
+      // send user directly to profile after signup
+      // const user = getUser();
+      // if (user && user.last_login == null) {
+      //   router.push('/profile');
+      // } else {
         router.push('/dashboard');
-      }
+      // }
       getProfile();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Invalid OTP. Please try again.');

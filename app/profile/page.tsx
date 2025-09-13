@@ -2,6 +2,7 @@
 
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -127,21 +128,20 @@ export default function ProfilePage() {
   const [errorNotification, setErrorNotification] = useState<string | null>(
     null
   );
-
   const [profileData, setProfileData] = useState<ProfileData>(
     generateProfileData(profile)
   );
-
+  
   const [isAddingNextOfKin, setIsAddingNextOfKin] = useState(false);
   const [isUpdatingNextOfKin, setIsUpdatingNextOfKin] = useState(false);
   const [newNextOfKin, setNewNextOfKin] = useState<Partial<NextOfKin>>(
     generateNewNextOfKin(profile!)
   );
-
+  
   const [isConfirmingPrimary, setIsConfirmingPrimary] = useState(false);
   const [pendingNextOfKin, setPendingNextOfKin] =
-    useState<Partial<NextOfKin> | null>(null);
-
+  useState<Partial<NextOfKin> | null>(null);
+  
   const [securitySettings, setSecuritySettings] = useState({
     twoFactorEnabled: false,
     emailNotifications: true,
@@ -149,6 +149,8 @@ export default function ProfilePage() {
     loginAlerts: true,
     transactionAlerts: true,
   });
+  const searchParams = useSearchParams()
+  const currentTab = searchParams.get('tab') || "profile";
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -237,16 +239,17 @@ export default function ProfilePage() {
     setProfileData(generateProfileData(profile));
   }, [profile]);
 
-  useEffect(() => {
-    if(!user && !profile) return;
+  // show instruction if directly redirected to profile after signup
+  // useEffect(() => {
+  //   if(!user && !profile) return;
     
-    if ((user && user.last_login == null) || profile?.last_login==null) {
-      setNotification(
-        'Welcome to SecureBank. Please update the required profile information, add a primary next of kin then proceed to create a bank account.'
-      );
-      setTimeout(() => setNotification(null), 15000);
-    }
-  }, [user, profile]);
+  //   if ((user && user.last_login == null) || profile?.last_login==null) {
+  //     setNotification(
+  //       'Welcome to SecureBank. Please update the required profile information, add a primary next of kin then proceed to create a bank account.'
+  //     );
+  //     setTimeout(() => setNotification(null), 15000);
+  //   }
+  // }, [user, profile]);
 
   if (!user) {
     return (
@@ -287,7 +290,7 @@ export default function ProfilePage() {
           </Alert>
         )}
 
-        <Tabs defaultValue="profile" className="space-y-4">
+        <Tabs defaultValue={currentTab} className="space-y-4">
           <TabsList>
             <TabsTrigger
               value="profile"
