@@ -239,16 +239,17 @@ export default function ProfilePage() {
     setProfileData(generateProfileData(profile));
   }, [profile]);
 
-  useEffect(() => {
-    if(!user && !profile) return;
+  // show instruction if directly redirected to profile after signup
+  // useEffect(() => {
+  //   if(!user && !profile) return;
     
-    if ((user && user.last_login == null) || profile?.last_login==null) {
-      setNotification(
-        'Welcome to SecureBank. Please update the required profile information, add a primary next of kin then proceed to create a bank account.'
-      );
-      setTimeout(() => setNotification(null), 15000);
-    }
-  }, [user, profile]);
+  //   if ((user && user.last_login == null) || profile?.last_login==null) {
+  //     setNotification(
+  //       'Welcome to SecureBank. Please update the required profile information, add a primary next of kin then proceed to create a bank account.'
+  //     );
+  //     setTimeout(() => setNotification(null), 15000);
+  //   }
+  // }, [user, profile]);
 
   if (!user) {
     return (
