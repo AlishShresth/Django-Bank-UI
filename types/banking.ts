@@ -15,8 +15,7 @@ export interface BankAccount {
   verification_date?: string;
   verification_note?: string;
   fully_activated: boolean;
-  interest_rate: number;
-  annual_interest_rate?: number;
+  annual_interest_rate: number;
   apply_daily_interest(): number;
   clean(): void;
   save(): void;

@@ -17,7 +17,6 @@ import { FormInput } from "@/components/ui/form-input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus } from "lucide-react"
 import { useAuthStore } from "@/stores/auth-store"
-import { hasPermission } from "@/lib/rbac"
 
 interface CreateAccountDialogProps {
   onCreateAccount: (accountData: any) => Promise<void>
@@ -28,16 +27,12 @@ export function CreateAccountDialog({ onCreateAccount }: CreateAccountDialogProp
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     accountType: "",
-    initialDeposit: "",
+    initialDeposit: 0,
     customerEmail: "",
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const { user } = useAuthStore()
-
-  if (!user || !hasPermission(user.role, "manage_customer_accounts")) {
-    return null
-  }
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -46,9 +41,7 @@ export function CreateAccountDialog({ onCreateAccount }: CreateAccountDialogProp
       newErrors.accountType = "Account type is required"
     }
 
-    if (!formData.initialDeposit) {
-      newErrors.initialDeposit = "Initial deposit is required"
-    } else if (isNaN(Number(formData.initialDeposit)) || Number(formData.initialDeposit) < 0) {
+    if (isNaN(Number(formData.initialDeposit)) || Number(formData.initialDeposit) < 0) {
       newErrors.initialDeposit = "Please enter a valid amount"
     }
 
@@ -75,7 +68,7 @@ export function CreateAccountDialog({ onCreateAccount }: CreateAccountDialogProp
         customerEmail: formData.customerEmail,
       })
       setOpen(false)
-      setFormData({ accountType: "", initialDeposit: "", customerEmail: "" })
+      setFormData({ accountType: "", initialDeposit: 0, customerEmail: "" })
       setErrors({})
     } catch (error) {
       setErrors({ general: "Failed to create account. Please try again." })
@@ -125,18 +118,19 @@ export function CreateAccountDialog({ onCreateAccount }: CreateAccountDialogProp
             </Select>
             {errors.accountType && <p className="text-sm text-destructive">{errors.accountType}</p>}
           </div>
-
-          <FormInput
+          {user!.role !== 'customer' && (
+            <FormInput
             label="Initial Deposit"
             type="number"
             value={formData.initialDeposit}
-            onChange={(e) => setFormData({ ...formData, initialDeposit: e.target.value })}
+            onChange={(e) => setFormData({ ...formData, initialDeposit: Number(e.target.value)})}
             error={errors.initialDeposit}
             placeholder="0.00"
             min="0"
             step="0.01"
             required
-          />
+            />
+          )}
 
           {errors.general && <p className="text-sm text-destructive">{errors.general}</p>}
 

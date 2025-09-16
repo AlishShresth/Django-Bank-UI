@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { StatsCard } from './stats-card';
 import { QuickActions } from './quick-actions';
@@ -13,37 +13,68 @@ import {
   PlusCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { createApiStore } from '@/stores/generic-store';
 import { BankAccount } from '@/types/banking';
 import { Transaction } from '@/types/transaction';
 import { VirtualCard } from '@/types/card';
+import { useProfileStore } from '@/stores/profile-store';
+import { apiClient } from '@/lib/axios';
 import { formatDateRelative } from '@/lib/formatDate';
 
 export function CustomerDashboard() {
-  const useAccountsStore = createApiStore<BankAccount>();
-  const useTransactionStore = createApiStore<Transaction>();
-  const useCardsStore = createApiStore<VirtualCard>();
-  const accountStore = useAccountsStore();
-  const transactionStore = useTransactionStore();
-  const cardsStore = useCardsStore();
+  const { profile } = useProfileStore();
+  const [accounts, setAccounts] = useState([] as BankAccount[]);
+  const [transactions, setTransactions] = useState([] as Transaction[]);
+  const [cards, setCards] = useState([] as VirtualCard[]);
+  const [totalBalance, setTotalBalance] = useState(0);
+  const currency = 'NPR';
+  const fetchAccounts = async () => {
+    try {
+      const response = await apiClient.get('/v1/accounts/accounts/');
+      setAccounts(response.data.account_list.results);
+    } catch (error: any) {
+      console.error(error);
+      setAccounts([]);
+    }
+  };
+
+  const fetchTransactions = async () => {
+    try {
+      const response = await apiClient.get('/v1/accounts/transactions/');
+      setTransactions(response.data.transaction_list.results);
+    } catch (error: any) {
+      console.error(error);
+      setTransactions([]);
+    }
+  };
+
+  const fetchCards = async () => {
+    try {
+      const response = await apiClient.get('/v1/cards/virtual-cards/');
+      setCards(response.data.card_list.results);
+    } catch (error: any) {
+      console.error(error);
+      setCards([]);
+    }
+  };
 
   useEffect(() => {
-    accountStore.fetch('/v1/accounts/accounts/');
+    fetchAccounts();
   }, []);
 
   useEffect(() => {
-    const fetchData = () => {
-      transactionStore.fetch('/v1/accounts/transactions/');
-      cardsStore.fetch('/v1/cards/virtual-cards/');
-    };
-    if (accountStore.data.length > 0) {
-      fetchData();
+    if (accounts.length == 0) return;
+    let amount = 0;
+    for (let i = 0; i < accounts.length; i++) {
+      amount += parseFloat(accounts[i].account_balance.toString());
     }
-  }, [accountStore]);
+    setTotalBalance(amount);
+    fetchTransactions();
+    fetchCards();
+  }, [accounts]);
 
   return (
     <>
-      {accountStore.data.length > 0 ? (
+      {accounts.length > 0 ? (
         <div className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold text-foreground">
@@ -56,25 +87,34 @@ export function CustomerDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatsCard
               title="Total Balance"
-              value="$12,345.67"
+              value={currency + ' ' + totalBalance.toString()}
               change="+2.5% from last month"
               changeType="positive"
               icon={<DollarSign className="h-4 w-4" />}
             />
-            <StatsCard
-              title="Checking Account"
-              value="$8,234.50"
-              change="+$1,200 this month"
-              changeType="positive"
-              icon={<Activity className="h-4 w-4" />}
-            />
-            <StatsCard
-              title="Savings Account"
-              value="$4,111.17"
-              change="+0.5% interest"
-              changeType="positive"
-              icon={<TrendingUp className="h-4 w-4" />}
-            />
+            {accounts.length > 0 &&
+              accounts.map((account) => (
+                <StatsCard
+                  key={account.account_number}
+                  title={
+                    account.account_type[0].toUpperCase() +
+                    account.account_type.slice(1) +
+                    'Account'
+                  }
+                  value={currency + ' ' + account.account_balance}
+                  change={
+                    '+' + account.annual_interest_rate * 100 + '% interest'
+                  }
+                  changeType={account.account_type  == "current" ? "neutral": "positive"}
+                  icon={
+                    account.account_type == 'current' ? (
+                      <Activity className="h-4 w-4" />
+                    ) : (
+                      <TrendingUp className="h-4 w-4" />
+                    )
+                  }
+                />
+              ))}
             <StatsCard
               title="Active Cards"
               value="3"
@@ -92,8 +132,8 @@ export function CustomerDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {transactionStore.data.length > 0 ? (
-                    transactionStore.data.map((transaction, index) => (
+                  {transactions.length > 0 ? (
+                    transactions.map((transaction, index) => (
                       <div
                         key={index}
                         className="flex items-center justify-between"
@@ -112,7 +152,7 @@ export function CustomerDashboard() {
                           className={`text-sm font-medium ${
                             transaction.transaction_type == 'deposit'
                               ? 'text-success'
-                              : 'text-foreground'
+                              : 'text-destructive'
                           }`}
                         >
                           {transaction.transaction_type == 'deposit'
@@ -208,8 +248,12 @@ export function CustomerDashboard() {
                 <Link href="/profile">
                   <Button
                     variant="outline"
-                    disabled
-                    className="w-full cursor-not-allowed opacity-50 bg-transparent"
+                    disabled={!profile?.next_of_kin?.length}
+                    className={`w-full mt-2 ${
+                      !profile?.next_of_kin?.length
+                        ? 'opacity-50 bg-transparent cursor-not-allowed'
+                        : ''
+                    }`}
                   >
                     Create Account
                   </Button>

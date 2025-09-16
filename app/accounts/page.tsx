@@ -122,9 +122,7 @@ export default function AccountsPage() {
                 : 'View your account information'}
             </p>
           </div>
-          {canManageAccounts && (
-            <CreateAccountDialog onCreateAccount={handleCreateAccount} />
-          )}
+          <CreateAccountDialog onCreateAccount={handleCreateAccount} />
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4">
