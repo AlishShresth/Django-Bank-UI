@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
+import { FileUploadField } from '@/components/ui/file';
 import {
   Select,
   SelectContent,
@@ -129,6 +130,11 @@ export default function ProfilePage() {
     error,
     setError,
   } = useProfileStore();
+
+  const photoInputRef = useRef(null);
+  const idPhotoInputRef = useRef(null);
+  const signatureInputRef = useRef(null);
+
   const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
   const [errorNotification, setErrorNotification] = useState<string | null>(
@@ -137,17 +143,14 @@ export default function ProfilePage() {
   const [profileData, setProfileData] = useState<ProfileData>(
     generateProfileData(profile)
   );
-
   const [isAddingNextOfKin, setIsAddingNextOfKin] = useState(false);
   const [isUpdatingNextOfKin, setIsUpdatingNextOfKin] = useState(false);
   const [newNextOfKin, setNewNextOfKin] = useState<Partial<NextOfKin>>(
     generateNewNextOfKin(profile!)
   );
-
   const [isConfirmingPrimary, setIsConfirmingPrimary] = useState(false);
   const [pendingNextOfKin, setPendingNextOfKin] =
     useState<Partial<NextOfKin> | null>(null);
-
   const [securitySettings, setSecuritySettings] = useState({
     twoFactorEnabled: false,
     emailNotifications: true,
@@ -155,9 +158,9 @@ export default function ProfilePage() {
     loginAlerts: true,
     transactionAlerts: true,
   });
+
   const searchParams = useSearchParams();
   const currentTab = searchParams.get('tab') || 'profile';
-  const [signaturePreviewUrl, setSignaturePreviewUrl] = useState('');
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -241,21 +244,38 @@ export default function ProfilePage() {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  const fileInput = useRef(null);
-
-  const handleSignaturePhotoUpload = async (e: any) => {
+  const handleFileUpload = (fieldName: string) => (e: any) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       setProfileData((profileData) => ({
         ...profileData,
-        signature_photo: file,
+        [fieldName]: file,
       }));
-      
+
       const reader = new FileReader();
       reader.onload = (e) => {
-        setSignaturePreviewUrl(e.target.result);
+        setProfileData((profileData) => ({
+          ...profileData,
+          [fieldName]: e.target.result,
+        }));
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveFile = (fieldName: string, inputRef: any) => () => {
+    setProfileData((profileData) => ({
+      ...profileData,
+      [fieldName]: null,
+    }));
+
+    setProfileData((profileData) => ({
+      ...profileData,
+      [fieldName]: null,
+    }));
+
+    if (inputRef.current) {
+      inputRef.current.value = '';
     }
   };
 
@@ -509,52 +529,6 @@ export default function ProfilePage() {
                           <SelectItem value="separated">Separated</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <label
-                        className="text-sm font-medium text-foreground cursor-pointer"
-                        htmlFor="signature_photo"
-                      >
-                        Signature Photo <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="file"
-                        name="signature_photo"
-                        id="signature_photo"
-                        ref={fileInput}
-                        onChange={handleSignaturePhotoUpload}
-                        required
-                        className="hidden"
-                      />
-                      {profileData.signature_photo ? (
-                        <div className="flex h-9 w-full justify-between items-center py-2 px-3 border-1 rounded-md text-sm">
-                          <span className="truncate max-w-3/4">
-                            {profileData.signature_photo.name}
-                          </span>
-                          <span
-                            onClick={() => {
-                              setProfileData((profileData) => ({
-                                ...profileData,
-                                signature_photo: null,
-                              }));
-                              if (fileInput.current) {
-                                fileInput.current.value = '';
-                              }
-                            }}
-                          >
-                            <X className="h-3 w-3 text-red-500 cursor-pointer"></X>
-                          </span>
-                        </div>
-                      ) : (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                          onClick={() => fileInput.current?.click()}
-                        >
-                          Choose File
-                        </Button>
-                      )}
                     </div>
                   </div>
                   <div className="border-t pt-6">
@@ -815,6 +789,47 @@ export default function ProfilePage() {
                           />
                         </>
                       )}
+                    </div>
+                  </div>
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold mb-4">Documents</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <FileUploadField
+                        label="Photo"
+                        name="photo"
+                        value={profileData.photo}
+                        previewUrl={profileData.photo_url}
+                        onChange={handleFileUpload('photo')}
+                        onRemove={handleRemoveFile('photo', photoInputRef)}
+                        inputRef={photoInputRef}
+                        required={true}
+                      />
+                      <FileUploadField
+                        label={`${
+                          profileData.means_of_identification[0]?.toUpperCase() +
+                          profileData.means_of_identification?.slice(1)
+                        } Photo`}
+                        name="id_photo"
+                        value={profileData.id_photo}
+                        previewUrl={profileData.id_photo_url}
+                        onChange={handleFileUpload('id_photo')}
+                        onRemove={handleRemoveFile('id_photo', idPhotoInputRef)}
+                        inputRef={idPhotoInputRef}
+                        required={true}
+                      />
+                      <FileUploadField
+                        label="Signature Photo"
+                        name="signature_photo"
+                        value={profileData.signature_photo}
+                        previewUrl={profileData.signature_photo_url}
+                        onChange={handleFileUpload('signature_photo')}
+                        onRemove={handleRemoveFile(
+                          'signature_photo',
+                          signatureInputRef
+                        )}
+                        inputRef={signatureInputRef}
+                        required={true}
+                      />
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1118,8 +1133,8 @@ export default function ProfilePage() {
                           <div className="space-y-2">
                             <div className="flex items-center gap-2">
                               <h3 className="font-semibold">
-                                {kin.title[0].toUpperCase() +
-                                  kin.title.slice(1)}
+                                {kin.title[0]?.toUpperCase() +
+                                  kin.title?.slice(1)}
                                 . {kin.first_name} {kin.last_name}
                               </h3>
                               {kin.is_primary && (
