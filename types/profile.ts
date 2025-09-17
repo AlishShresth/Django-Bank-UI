@@ -120,4 +120,10 @@ export interface ProfileData {
   account_currency: string;
   account_type: string;
   next_of_kin?: NextOfKin[];
+  photo_url: string;
+  id_photo_url: string;
+  signature_photo_url: string;
+  photo?: File | null;
+  id_photo?: File | null;
+  signature_photo?: File | null;
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -88,6 +88,12 @@ const generateProfileData = (profile: Profile | null): ProfileData => ({
   account_currency: profile?.account_currency || 'nepalese_rupees',
   account_type: profile?.account_type || 'savings',
   next_of_kin: profile?.next_of_kin || ([] as NextOfKin[]),
+  photo_url: profile?.photo_url || '',
+  id_photo_url: profile?.id_photo_url || '',
+  signature_photo_url: profile?.signature_photo_url || '',
+  photo: null,
+  id_photo: null,
+  signature_photo: null,
 });
 
 const generateNewNextOfKin = (profile: Profile) => ({
@@ -131,17 +137,17 @@ export default function ProfilePage() {
   const [profileData, setProfileData] = useState<ProfileData>(
     generateProfileData(profile)
   );
-  
+
   const [isAddingNextOfKin, setIsAddingNextOfKin] = useState(false);
   const [isUpdatingNextOfKin, setIsUpdatingNextOfKin] = useState(false);
   const [newNextOfKin, setNewNextOfKin] = useState<Partial<NextOfKin>>(
     generateNewNextOfKin(profile!)
   );
-  
+
   const [isConfirmingPrimary, setIsConfirmingPrimary] = useState(false);
   const [pendingNextOfKin, setPendingNextOfKin] =
-  useState<Partial<NextOfKin> | null>(null);
-  
+    useState<Partial<NextOfKin> | null>(null);
+
   const [securitySettings, setSecuritySettings] = useState({
     twoFactorEnabled: false,
     emailNotifications: true,
@@ -149,8 +155,9 @@ export default function ProfilePage() {
     loginAlerts: true,
     transactionAlerts: true,
   });
-  const searchParams = useSearchParams()
-  const currentTab = searchParams.get('tab') || "profile";
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get('tab') || 'profile';
+  const [signaturePreviewUrl, setSignaturePreviewUrl] = useState('');
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -234,22 +241,28 @@ export default function ProfilePage() {
     setTimeout(() => setNotification(null), 3000);
   };
 
+  const fileInput = useRef(null);
+
+  const handleSignaturePhotoUpload = async (e: any) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      setProfileData((profileData) => ({
+        ...profileData,
+        signature_photo: file,
+      }));
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setSignaturePreviewUrl(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   useEffect(() => {
     setError(null);
     setProfileData(generateProfileData(profile));
   }, [profile]);
-
-  // show instruction if directly redirected to profile after signup
-  // useEffect(() => {
-  //   if(!user && !profile) return;
-    
-  //   if ((user && user.last_login == null) || profile?.last_login==null) {
-  //     setNotification(
-  //       'Welcome to SecureBank. Please update the required profile information, add a primary next of kin then proceed to create a bank account.'
-  //     );
-  //     setTimeout(() => setNotification(null), 15000);
-  //   }
-  // }, [user, profile]);
 
   if (!user) {
     return (
@@ -331,8 +344,11 @@ export default function ProfilePage() {
                 <form onSubmit={handleProfileUpdate} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
-                      <label className="text-sm font-medium" htmlFor="title">
-                        Title
+                      <label
+                        className="text-sm font-medium text-foreground cursor-pointer"
+                        htmlFor="title"
+                      >
+                        Title <span className="text-red-500">*</span>
                       </label>
                       <Select
                         value={profileData.title}
@@ -404,8 +420,11 @@ export default function ProfilePage() {
                       error={error?.profile?.date_of_birth}
                     />
                     <div>
-                      <label className="text-sm font-medium" htmlFor="gender">
-                        Gender<span className="text-red-500">*</span>
+                      <label
+                        className="text-sm font-medium text-foreground cursor-pointer"
+                        htmlFor="gender"
+                      >
+                        Gender <span className="text-red-500">*</span>
                       </label>
                       <Select
                         value={profileData.gender}
@@ -465,7 +484,7 @@ export default function ProfilePage() {
                     />
                     <div>
                       <label
-                        className="text-sm font-medium"
+                        className="text-sm font-medium text-foreground cursor-pointer"
                         htmlFor="marital_status"
                       >
                         Marital Status
@@ -491,6 +510,52 @@ export default function ProfilePage() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="space-y-2">
+                      <label
+                        className="text-sm font-medium text-foreground cursor-pointer"
+                        htmlFor="signature_photo"
+                      >
+                        Signature Photo <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="file"
+                        name="signature_photo"
+                        id="signature_photo"
+                        ref={fileInput}
+                        onChange={handleSignaturePhotoUpload}
+                        required
+                        className="hidden"
+                      />
+                      {profileData.signature_photo ? (
+                        <div className="flex h-9 w-full justify-between items-center py-2 px-3 border-1 rounded-md text-sm">
+                          <span className="truncate max-w-3/4">
+                            {profileData.signature_photo.name}
+                          </span>
+                          <span
+                            onClick={() => {
+                              setProfileData((profileData) => ({
+                                ...profileData,
+                                signature_photo: null,
+                              }));
+                              if (fileInput.current) {
+                                fileInput.current.value = '';
+                              }
+                            }}
+                          >
+                            <X className="h-3 w-3 text-red-500 cursor-pointer"></X>
+                          </span>
+                        </div>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                          onClick={() => fileInput.current?.click()}
+                        >
+                          Choose File
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   <div className="border-t pt-6">
                     <h3 className="text-lg font-semibold mb-4">
@@ -502,7 +567,8 @@ export default function ProfilePage() {
                           htmlFor="means_of_identification"
                           className="text-sm font-medium"
                         >
-                          Means of Identification
+                          Means of Identification{' '}
+                          <span className="text-red-500">*</span>
                         </label>
                         <Select
                           value={profileData.means_of_identification}
@@ -705,7 +771,7 @@ export default function ProfilePage() {
                           <FormInput
                             label="Date of Employment"
                             type="date"
-                            value={profileData.date_of_employment}
+                            value={profileData.date_of_employment as string}
                             onChange={(e) =>
                               setProfileData({
                                 ...profileData,
