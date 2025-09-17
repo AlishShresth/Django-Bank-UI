@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -76,6 +76,12 @@ export function CreateAccountDialog({ onCreateAccount }: CreateAccountDialogProp
       setIsLoading(false)
     }
   }
+  
+  useEffect(() => {
+    if(user!.role == 'customer'){
+      setFormData({ ...formData, customerEmail: user!.email})
+    }
+  }, []);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -111,9 +117,9 @@ export function CreateAccountDialog({ onCreateAccount }: CreateAccountDialogProp
                 <SelectValue placeholder="Select account type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="checking">Checking Account</SelectItem>
+                <SelectItem value="current">Current Account</SelectItem>
                 <SelectItem value="savings">Savings Account</SelectItem>
-                <SelectItem value="business">Business Account</SelectItem>
+                <SelectItem value="fixed">Fixed Account</SelectItem>
               </SelectContent>
             </Select>
             {errors.accountType && <p className="text-sm text-destructive">{errors.accountType}</p>}

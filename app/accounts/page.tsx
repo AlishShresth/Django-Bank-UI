@@ -71,15 +71,13 @@ export default function AccountsPage() {
   }, [accounts, searchTerm, statusFilter, typeFilter]);
 
   const handleCreateAccount = async (accountData: any) => {
-    // Simulate API call
-    // const newAccount: Partial<BankAccount> = {
-    //   account_number: Math.random().toString().slice(2, 12),
-    //   account_type: accountData.accountType,
-    //   currency: "nepalese_rupees",
-    //   account_status: "active",
-    //   is_primary:
-    // }
-    // setAccounts([...accounts, newAccount])
+    try{ 
+      const response = await apiClient.post('/v1/accounts/accounts/', accountData);
+      setAccounts([...accounts, response.data.account]);
+    } catch(error: any) {
+      console.error(error);
+      throw new Error('Failed to create account');
+    }
   };
 
   const handleFreezeAccount = async (accountId: string) => {
