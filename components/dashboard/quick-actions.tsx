@@ -1,7 +1,6 @@
 "use client"
 import Link from "next/link"
 import { useAuthStore } from "@/stores/auth-store"
-import { hasPermission } from "@/lib/rbac"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ArrowLeftRight, CreditCard, Download, Plus, Users, FileText } from "lucide-react"
@@ -17,15 +16,23 @@ export function QuickActions() {
       description: "Send money to another account",
       icon: ArrowLeftRight,
       href: "/transfers",
-      permission: "transfer_funds" as const,
+      role: ["customer", "teller"],
       variant: "default" as const,
+    },
+    {
+      title: "View Accounts",
+      description: "Manage your accounts",
+      icon: CreditCard,
+      href: "/accounts",
+      role: ["customer", "teller", "account_executive", "branch_manager"],
+      variant: "outline" as const,
     },
     {
       title: "View Cards",
       description: "Manage your cards",
       icon: CreditCard,
       href: "/cards",
-      permission: "manage_cards" as const,
+      role: ["customer", "teller", "account_executive", "branch_manager"],
       variant: "outline" as const,
     },
     {
@@ -33,7 +40,7 @@ export function QuickActions() {
       description: "Get account statements",
       icon: Download,
       href: "/statements",
-      permission: "view_accounts" as const,
+      role: ["customer"],
       variant: "outline" as const,
     },
     {
@@ -41,7 +48,7 @@ export function QuickActions() {
       description: "Register new customer",
       icon: Plus,
       href: "/customers/new",
-      permission: "manage_customer_accounts" as const,
+      role: ["teller", "account_executive", "branch_manager"],
       variant: "outline" as const,
     },
     {
@@ -49,7 +56,7 @@ export function QuickActions() {
       description: "Manage customer accounts",
       icon: Users,
       href: "/customers",
-      permission: "view_all_customers" as const,
+      role: ["teller", "account_executive", "branch_manager"],
       variant: "outline" as const,
     },
     {
@@ -57,12 +64,12 @@ export function QuickActions() {
       description: "View performance reports",
       icon: FileText,
       href: "/reports",
-      permission: "view_branch_reports" as const,
+      role: ["branch_manager"],
       variant: "outline" as const,
     },
   ]
 
-  const filteredActions = actions.filter((action) => hasPermission(user.role!, action.permission))
+  const filteredActions = actions.filter((action) =>  action.role.includes(user.role!))
 
   if (filteredActions.length === 0) return null
 

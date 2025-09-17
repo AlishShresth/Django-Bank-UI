@@ -16,6 +16,7 @@ export interface BankAccount {
   verification_note?: string;
   fully_activated: boolean;
   annual_interest_rate: number;
+  balance_change_percentage: number;
   apply_daily_interest(): number;
   clean(): void;
   save(): void;
