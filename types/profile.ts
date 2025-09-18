@@ -1,9 +1,9 @@
 export interface Profile {
   title: Salutation;
-  first_name?: string;
-  middle_name?: string;
-  last_name?: string;
-  email?: string;
+  first_name: string;
+  middle_name: string;
+  last_name: string;
+  email: string;
   gender: Gender;
   date_of_birth: string;
   country_of_birth: string;
@@ -12,31 +12,31 @@ export interface Profile {
   means_of_identification: IdentificationMeans;
   id_issue_date: string;
   id_expiry_date: string;
-  passport_number?: string;
+  passport_number: string;
   nationality: string;
   phone_number: string;
   address: string;
   city: string;
   country: string;
   employment_status: EmploymentStatus;
-  employer_name?: string;
+  employer_name: string;
   annual_income: number;
   date_of_employment: string | null;
-  employer_address?: string;
-  employer_city?: string;
-  employer_state?: string;
+  employer_address: string;
+  employer_city: string;
+  employer_state: string;
   account_currency?: string;
   account_type?: string;
-  photo?: string;
-  photo_url?: string;
-  id_photo?: string;
-  id_photo_url?: string;
-  signature_photo?: string;
-  signature_photo_url?: string;
+  photo: string;
+  photo_url: string;
+  id_photo: string;
+  id_photo_url: string;
+  signature_photo: string;
+  signature_photo_url: string;
   is_complete_with_next_of_kin(): boolean;
   created_at: string;
-  next_of_kin?: NextOfKin[];
-  last_login?: string;
+  next_of_kin: NextOfKin[];
+  last_login: string;
 }
 
 export interface NextOfKin {
@@ -93,7 +93,7 @@ export interface ProfileState {
 export interface ProfileData {
   title: Salutation;
   first_name: string;
-  middle_name?: string;
+  middle_name: string;
   last_name: string;
   email: string;
   gender: Gender;
@@ -104,20 +104,26 @@ export interface ProfileData {
   means_of_identification: IdentificationMeans;
   id_issue_date: string;
   id_expiry_date: string;
-  passport_number?: string;
+  passport_number: string;
   nationality: string;
   phone_number: string;
   address: string;
   city: string;
   country: string;
   employment_status: EmploymentStatus;
-  employer_name?: string;
+  employer_name: string;
   annual_income: number;
   date_of_employment: string | null;
-  employer_address?: string;
-  employer_city?: string;
-  employer_state?: string;
+  employer_address: string;
+  employer_city: string;
+  employer_state: string;
   account_currency: string;
   account_type: string;
-  next_of_kin?: NextOfKin[];
+  next_of_kin: NextOfKin[];
+  photo_url: string;
+  id_photo_url: string;
+  signature_photo_url: string;
+  photo: File | null;
+  id_photo: File | null;
+  signature_photo: File | null;
 }

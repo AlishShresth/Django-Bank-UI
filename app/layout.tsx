@@ -7,6 +7,7 @@ import { SessionTimeout } from '@/components/security/session-timeout';
 import { ActivityMonitor } from '@/components/security/activity-monitor';
 import { ErrorBoundary } from '@/components/error/error-boundary';
 import './globals.css';
+import { Toaster } from 'sonner';
 
 export const metadata: Metadata = {
   title: 'SecureBank - Your Trusted Banking Partner',
@@ -29,6 +30,7 @@ export default function RootLayout({
           <AuthGuard>
             <SessionTimeout />
             <ActivityMonitor />
+            <Toaster />
             {children}
           </AuthGuard>
         </ErrorBoundary>

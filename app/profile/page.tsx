@@ -1,7 +1,7 @@
 'use client';
 
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
+import { FileUploadField } from '@/components/ui/file';
 import {
   Select,
   SelectContent,
@@ -55,6 +56,7 @@ import type {
   NextOfKin,
 } from '@/types/profile';
 import { useProfileStore } from '@/stores/profile-store';
+import { toast } from 'sonner';
 
 const generateProfileData = (profile: Profile | null): ProfileData => ({
   title: profile?.title || ('mr' as Salutation),
@@ -81,13 +83,19 @@ const generateProfileData = (profile: Profile | null): ProfileData => ({
     profile?.employment_status || ('employed' as EmploymentStatus),
   employer_name: profile?.employer_name || '',
   annual_income: profile?.annual_income || 0,
-  date_of_employment: profile?.date_of_employment || null,
+  date_of_employment: profile?.date_of_employment || '',
   employer_address: profile?.employer_address || '',
   employer_city: profile?.employer_city || '',
   employer_state: profile?.employer_state || '',
   account_currency: profile?.account_currency || 'nepalese_rupees',
   account_type: profile?.account_type || 'savings',
   next_of_kin: profile?.next_of_kin || ([] as NextOfKin[]),
+  photo_url: profile?.photo_url || '',
+  id_photo_url: profile?.id_photo_url || '',
+  signature_photo_url: profile?.signature_photo_url || '',
+  photo: null,
+  id_photo: null,
+  signature_photo: null,
 });
 
 const generateNewNextOfKin = (profile: Profile) => ({
@@ -123,6 +131,11 @@ export default function ProfilePage() {
     error,
     setError,
   } = useProfileStore();
+
+  const photoInputRef = useRef(null);
+  const idPhotoInputRef = useRef(null);
+  const signatureInputRef = useRef(null);
+
   const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
   const [errorNotification, setErrorNotification] = useState<string | null>(
@@ -131,17 +144,14 @@ export default function ProfilePage() {
   const [profileData, setProfileData] = useState<ProfileData>(
     generateProfileData(profile)
   );
-  
   const [isAddingNextOfKin, setIsAddingNextOfKin] = useState(false);
   const [isUpdatingNextOfKin, setIsUpdatingNextOfKin] = useState(false);
   const [newNextOfKin, setNewNextOfKin] = useState<Partial<NextOfKin>>(
     generateNewNextOfKin(profile!)
   );
-  
   const [isConfirmingPrimary, setIsConfirmingPrimary] = useState(false);
   const [pendingNextOfKin, setPendingNextOfKin] =
-  useState<Partial<NextOfKin> | null>(null);
-  
+    useState<Partial<NextOfKin> | null>(null);
   const [securitySettings, setSecuritySettings] = useState({
     twoFactorEnabled: false,
     emailNotifications: true,
@@ -149,19 +159,81 @@ export default function ProfilePage() {
     loginAlerts: true,
     transactionAlerts: true,
   });
-  const searchParams = useSearchParams()
-  const currentTab = searchParams.get('tab') || "profile";
+
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get('tab') || 'profile';
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
     try {
-      setProfile(profileData);
-      await updateProfile();
+      const formData = new FormData();
+      const fileErrors: Record<string, string> = {};
+      Object.entries(profileData).forEach(([key, value]) => {
+        if (
+          key === 'photo' ||
+          key === 'id_photo' ||
+          key === 'signature_photo' ||
+          key.endsWith('_url')
+        ) {
+          return;
+        }
+
+        if (key === 'next_of_kin') {
+          if (Array.isArray(value)) {
+            value.forEach((item, index) => {
+              Object.entries(item).forEach(([subKey, subValue]) => {
+                formData.append(`${key}[${index}].${subKey}`, String(subValue));
+              });
+            });
+          }
+        } else if (typeof value === 'boolean') {
+          formData.append(key, value ? 'true' : 'false');
+        } else if (value !== null && value !== undefined) {
+          formData.append(key, String(value));
+        }
+      });
+
+      const fileFields = ['photo', 'id_photo', 'signature_photo'];
+      fileFields.forEach((field) => {
+        const file = profileData[field as keyof ProfileData] as File | null;
+        if (file instanceof File) {
+          if (file.size / (1024 * 1024) > 1) {
+            fileErrors[field] =
+              'File size is greater than the maximum supported size (1MB). Please choose a different file';
+          } else {
+            formData.append(field, file);
+          }
+        } else if (
+          file === null &&
+          profileData[`${field}_url` as keyof ProfileData] === null
+        ) {
+          formData.append(field, '');
+        }
+      });
+
+      if (Object.keys(fileErrors).length > 0) {
+        setError({
+          profile: fileErrors,
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // setProfile(profileData);
+      await updateProfile(formData);
       setNotification('Profile updated successfully');
+
+      setProfileData((profileData) => ({
+        ...profileData,
+        photo: null,
+        id_photo: null,
+        signature_photo: null,
+      }));
     } catch (error) {
       setErrorNotification('Failed to update profile');
+      toast.error('Failed to update profile');
     } finally {
       setTimeout(() => setNotification(null), 10000);
       setTimeout(() => setErrorNotification(null), 10000);
@@ -234,22 +306,41 @@ export default function ProfilePage() {
     setTimeout(() => setNotification(null), 3000);
   };
 
+  const handleFileUpload = (fieldName: string) => (e: any) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      setProfileData((profileData) => ({
+        ...profileData,
+        [fieldName]: file,
+      }));
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setProfileData((profileData) => ({
+          ...profileData,
+          [fieldName + '_url']: e.target.result,
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveFile = (fieldName: string, inputRef: any) => () => {
+    setProfileData((profileData) => ({
+      ...profileData,
+      [fieldName]: null,
+      [fieldName + '_url']: null,
+    }));
+
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
+  };
+
   useEffect(() => {
     setError(null);
     setProfileData(generateProfileData(profile));
   }, [profile]);
-
-  // show instruction if directly redirected to profile after signup
-  // useEffect(() => {
-  //   if(!user && !profile) return;
-    
-  //   if ((user && user.last_login == null) || profile?.last_login==null) {
-  //     setNotification(
-  //       'Welcome to SecureBank. Please update the required profile information, add a primary next of kin then proceed to create a bank account.'
-  //     );
-  //     setTimeout(() => setNotification(null), 15000);
-  //   }
-  // }, [user, profile]);
 
   if (!user) {
     return (
@@ -331,8 +422,11 @@ export default function ProfilePage() {
                 <form onSubmit={handleProfileUpdate} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
-                      <label className="text-sm font-medium" htmlFor="title">
-                        Title
+                      <label
+                        className="text-sm font-medium text-foreground cursor-pointer"
+                        htmlFor="title"
+                      >
+                        Title <span className="text-red-500">*</span>
                       </label>
                       <Select
                         value={profileData.title}
@@ -404,8 +498,11 @@ export default function ProfilePage() {
                       error={error?.profile?.date_of_birth}
                     />
                     <div>
-                      <label className="text-sm font-medium" htmlFor="gender">
-                        Gender<span className="text-red-500">*</span>
+                      <label
+                        className="text-sm font-medium text-foreground cursor-pointer"
+                        htmlFor="gender"
+                      >
+                        Gender <span className="text-red-500">*</span>
                       </label>
                       <Select
                         value={profileData.gender}
@@ -465,7 +562,7 @@ export default function ProfilePage() {
                     />
                     <div>
                       <label
-                        className="text-sm font-medium"
+                        className="text-sm font-medium text-foreground cursor-pointer"
                         htmlFor="marital_status"
                       >
                         Marital Status
@@ -502,7 +599,8 @@ export default function ProfilePage() {
                           htmlFor="means_of_identification"
                           className="text-sm font-medium"
                         >
-                          Means of Identification
+                          Means of Identification{' '}
+                          <span className="text-red-500">*</span>
                         </label>
                         <Select
                           value={profileData.means_of_identification}
@@ -705,7 +803,7 @@ export default function ProfilePage() {
                           <FormInput
                             label="Date of Employment"
                             type="date"
-                            value={profileData.date_of_employment}
+                            value={profileData.date_of_employment as string}
                             onChange={(e) =>
                               setProfileData({
                                 ...profileData,
@@ -749,6 +847,50 @@ export default function ProfilePage() {
                           />
                         </>
                       )}
+                    </div>
+                  </div>
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold mb-4">Documents</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <FileUploadField
+                        label="Photo"
+                        name="photo"
+                        value={profileData.photo}
+                        previewUrl={profileData.photo_url}
+                        onChange={handleFileUpload('photo')}
+                        onRemove={handleRemoveFile('photo', photoInputRef)}
+                        inputRef={photoInputRef}
+                        required={false}
+                        error={error?.profile?.photo}
+                      />
+                      <FileUploadField
+                        label={`${
+                          profileData.means_of_identification[0]?.toUpperCase() +
+                          profileData.means_of_identification?.slice(1)
+                        } Photo`}
+                        name="id_photo"
+                        value={profileData.id_photo}
+                        previewUrl={profileData.id_photo_url}
+                        onChange={handleFileUpload('id_photo')}
+                        onRemove={handleRemoveFile('id_photo', idPhotoInputRef)}
+                        inputRef={idPhotoInputRef}
+                        required={false}
+                        error={error?.profile?.id_photo}
+                      />
+                      <FileUploadField
+                        label="Signature Photo"
+                        name="signature_photo"
+                        value={profileData.signature_photo}
+                        previewUrl={profileData.signature_photo_url}
+                        onChange={handleFileUpload('signature_photo')}
+                        onRemove={handleRemoveFile(
+                          'signature_photo',
+                          signatureInputRef
+                        )}
+                        inputRef={signatureInputRef}
+                        required={false}
+                        error={error?.profile?.signature_photo}
+                      />
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1052,8 +1194,8 @@ export default function ProfilePage() {
                           <div className="space-y-2">
                             <div className="flex items-center gap-2">
                               <h3 className="font-semibold">
-                                {kin.title[0].toUpperCase() +
-                                  kin.title.slice(1)}
+                                {kin.title[0]?.toUpperCase() +
+                                  kin.title?.slice(1)}
                                 . {kin.first_name} {kin.last_name}
                               </h3>
                               {kin.is_primary && (
