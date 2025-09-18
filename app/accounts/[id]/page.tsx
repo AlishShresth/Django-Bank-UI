@@ -19,6 +19,7 @@ import type { BankAccount } from '@/types/banking';
 import type { Transaction } from '@/types/transaction';
 import { useAuthStore } from '@/stores/auth-store';
 import { apiClient } from '@/lib/axios';
+import { formatBalance, formatDate } from '@/lib/utils';
 
 export default function AccountDetailsPage() {
   const params = useParams();
@@ -42,30 +43,6 @@ export default function AccountDetailsPage() {
   useEffect(() => {
     fetchUserAccount(params.id as string);
   }, [params.id]);
-
-  const formatBalance = (balance: number, currency: string) => {
-    if (currency == 'pound_sterling') {
-      currency = 'gbp';
-    } else if (currency == 'us_dollars') {
-      currency = 'usd';
-    } else {
-      currency = 'npr';
-    }
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-    }).format(balance);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
 
   const getTransactionIcon = (type: string) => {
     switch (type) {

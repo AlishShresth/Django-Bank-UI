@@ -71,12 +71,17 @@ export default function AccountsPage() {
   }, [accounts, searchTerm, statusFilter, typeFilter]);
 
   const handleCreateAccount = async (accountData: any) => {
-    try{ 
-      const response = await apiClient.post('/v1/accounts/accounts/', accountData);
-      setAccounts([...accounts, response.data.account]);
-    } catch(error: any) {
-      console.error(error);
-      throw new Error('Failed to create account');
+    try {
+      const response = await apiClient.post(
+        '/v1/accounts/accounts/',
+        accountData
+      );
+      setAccounts([...accounts, response.data.account_list]);
+    } catch (error: any) {
+      console.error(error.response.data.account_list.error);
+      throw new Error(
+        error.response.data.account_list.error || 'Failed to create account'
+      );
     }
   };
 
@@ -142,6 +147,7 @@ export default function AccountsPage() {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="inactive">Inactive</SelectItem>
                 <SelectItem value="blocked">Blocked</SelectItem>
               </SelectContent>

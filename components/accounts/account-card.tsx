@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { BankAccount } from '@/types/banking';
 import { useAuthStore } from '@/stores/auth-store';
+import { formatBalance } from '@/lib/utils';
 
 interface AccountCardProps {
   account: BankAccount;
@@ -46,27 +47,15 @@ export function AccountCard({
     switch (status) {
       case 'active':
         return 'bg-success text-success-foreground';
+      case 'pending':
+        return 'bg-primary';
       case 'blocked':
-        return 'bg-warning text-warning-foreground';
+        return 'bg-warning text-white';
       case 'inactive':
         return 'bg-destructive text-destructive-foreground';
       default:
         return 'bg-gray-100 text-gray-800';
     }
-  };
-
-  const formatBalance = (balance: number, currency: string) => {
-    if (currency == 'pound_sterling') {
-      currency = 'gbp';
-    } else if (currency == 'us_dollars') {
-      currency = 'usd';
-    } else {
-      currency = 'npr';
-    }
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'npr',
-    }).format(balance);
   };
 
   const canManageAccount =
@@ -80,12 +69,12 @@ export function AccountCard({
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="space-y-1">
           <CardTitle className="text-base font-medium">
-            {account.account_type.charAt(0).toUpperCase() +
-              account.account_type.slice(1)}{' '}
+            {account.account_type?.charAt(0)?.toUpperCase() +
+              account.account_type?.slice(1)}{' '}
             Account
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            ****{account.account_number.slice(-4)}
+            ****{account.account_number?.slice(-4)}
           </p>
         </div>
         <div className="flex items-center gap-2">

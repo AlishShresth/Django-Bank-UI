@@ -26,9 +26,10 @@ export function CreateAccountDialog({ onCreateAccount }: CreateAccountDialogProp
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
-    accountType: "",
-    initialDeposit: 0,
-    customerEmail: "",
+    account_type: "",
+    initial_deposit: 0,
+    email: "",
+    currency: "nepalese_rupees"
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -37,18 +38,23 @@ export function CreateAccountDialog({ onCreateAccount }: CreateAccountDialogProp
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
-    if (!formData.accountType) {
-      newErrors.accountType = "Account type is required"
+    if (!formData.account_type) {
+      newErrors.account_type = "Account type is required"
+    }
+    
+    if (!formData.currency) {
+      newErrors.currency = "Account currency is required"
+    }
+    
+
+    if (isNaN(Number(formData.initial_deposit)) || Number(formData.initial_deposit) < 0) {
+      newErrors.initial_deposit = "Please enter a valid amount"
     }
 
-    if (isNaN(Number(formData.initialDeposit)) || Number(formData.initialDeposit) < 0) {
-      newErrors.initialDeposit = "Please enter a valid amount"
-    }
-
-    if (!formData.customerEmail) {
-      newErrors.customerEmail = "Customer email is required"
-    } else if (!/\S+@\S+\.\S+/.test(formData.customerEmail)) {
-      newErrors.customerEmail = "Please enter a valid email address"
+    if (!formData.email) {
+      newErrors.email = "Customer email is required"
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address"
     }
 
     setErrors(newErrors)
@@ -63,15 +69,17 @@ export function CreateAccountDialog({ onCreateAccount }: CreateAccountDialogProp
     setIsLoading(true)
     try {
       await onCreateAccount({
-        accountType: formData.accountType,
-        initialDeposit: Number(formData.initialDeposit),
-        customerEmail: formData.customerEmail,
+        account_type: formData.account_type,
+        initial_deposit: Number(formData.initial_deposit),
+        email: formData.email,
+        currency: formData.currency,
       })
       setOpen(false)
-      setFormData({ accountType: "", initialDeposit: 0, customerEmail: "" })
+      setFormData({ account_type: "", initial_deposit: 0, email: "", currency: "nepalese_rupees" })
       setErrors({})
-    } catch (error) {
-      setErrors({ general: "Failed to create account. Please try again." })
+    } catch (error: any) {
+      console.log('error', error);
+      setErrors({ general: error.message || "Failed to create account. Please try again." })
     } finally {
       setIsLoading(false)
     }
@@ -79,7 +87,7 @@ export function CreateAccountDialog({ onCreateAccount }: CreateAccountDialogProp
   
   useEffect(() => {
     if(user!.role == 'customer'){
-      setFormData({ ...formData, customerEmail: user!.email})
+      setFormData({ ...formData, email: user!.email})
     }
   }, []);
 
@@ -100,18 +108,34 @@ export function CreateAccountDialog({ onCreateAccount }: CreateAccountDialogProp
           <FormInput
             label="Customer Email"
             type="email"
-            value={formData.customerEmail}
-            onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
-            error={errors.customerEmail}
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            error={errors.email}
             placeholder="customer@example.com"
             required
           />
-
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Account Currency</label>
+            <Select
+              value={formData.currency}
+              onValueChange={(value) => setFormData({ ...formData, currency: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select account currency" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="nepalese_rupees">Nepalese Rupees</SelectItem>
+                <SelectItem value="us_dollar">US Dollar</SelectItem>
+                <SelectItem value="pound_sterling">Pound Sterling</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.accountCurrency && <p className="text-sm text-destructive">{errors.accountCurrency}</p>}
+          </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">Account Type</label>
             <Select
-              value={formData.accountType}
-              onValueChange={(value) => setFormData({ ...formData, accountType: value })}
+              value={formData.account_type}
+              onValueChange={(value) => setFormData({ ...formData, account_type: value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select account type" />
@@ -122,15 +146,15 @@ export function CreateAccountDialog({ onCreateAccount }: CreateAccountDialogProp
                 <SelectItem value="fixed">Fixed Account</SelectItem>
               </SelectContent>
             </Select>
-            {errors.accountType && <p className="text-sm text-destructive">{errors.accountType}</p>}
+            {errors.account_type && <p className="text-sm text-destructive">{errors.account_type}</p>}
           </div>
           {user!.role !== 'customer' && (
             <FormInput
             label="Initial Deposit"
             type="number"
-            value={formData.initialDeposit}
-            onChange={(e) => setFormData({ ...formData, initialDeposit: Number(e.target.value)})}
-            error={errors.initialDeposit}
+            value={formData.initial_deposit}
+            onChange={(e) => setFormData({ ...formData, initial_deposit: Number(e.target.value)})}
+            error={errors.initial_deposit}
             placeholder="0.00"
             min="0"
             step="0.01"
@@ -141,7 +165,7 @@ export function CreateAccountDialog({ onCreateAccount }: CreateAccountDialogProp
           {errors.general && <p className="text-sm text-destructive">{errors.general}</p>}
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => {setErrors({}); setOpen(false);}}>
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading}>
