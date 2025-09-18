@@ -56,6 +56,7 @@ import type {
   NextOfKin,
 } from '@/types/profile';
 import { useProfileStore } from '@/stores/profile-store';
+import { toast } from 'sonner';
 
 const generateProfileData = (profile: Profile | null): ProfileData => ({
   title: profile?.title || ('mr' as Salutation),
@@ -82,7 +83,7 @@ const generateProfileData = (profile: Profile | null): ProfileData => ({
     profile?.employment_status || ('employed' as EmploymentStatus),
   employer_name: profile?.employer_name || '',
   annual_income: profile?.annual_income || 0,
-  date_of_employment: profile?.date_of_employment || null,
+  date_of_employment: profile?.date_of_employment || '',
   employer_address: profile?.employer_address || '',
   employer_city: profile?.employer_city || '',
   employer_state: profile?.employer_state || '',
@@ -167,11 +168,72 @@ export default function ProfilePage() {
     setIsLoading(true);
     setError(null);
     try {
-      setProfile(profileData);
-      await updateProfile();
+      const formData = new FormData();
+      const fileErrors: Record<string, string> = {};
+      Object.entries(profileData).forEach(([key, value]) => {
+        if (
+          key === 'photo' ||
+          key === 'id_photo' ||
+          key === 'signature_photo' ||
+          key.endsWith('_url')
+        ) {
+          return;
+        }
+
+        if (key === 'next_of_kin') {
+          if (Array.isArray(value)) {
+            value.forEach((item, index) => {
+              Object.entries(item).forEach(([subKey, subValue]) => {
+                formData.append(`${key}[${index}].${subKey}`, String(subValue));
+              });
+            });
+          }
+        } else if (typeof value === 'boolean') {
+          formData.append(key, value ? 'true' : 'false');
+        } else if (value !== null && value !== undefined) {
+          formData.append(key, String(value));
+        }
+      });
+
+      const fileFields = ['photo', 'id_photo', 'signature_photo'];
+      fileFields.forEach((field) => {
+        const file = profileData[field as keyof ProfileData] as File | null;
+        if (file instanceof File) {
+          if (file.size / (1024 * 1024) > 1) {
+            fileErrors[field] =
+              'File size is greater than the maximum supported size (1MB). Please choose a different file';
+          } else {
+            formData.append(field, file);
+          }
+        } else if (
+          file === null &&
+          profileData[`${field}_url` as keyof ProfileData] === null
+        ) {
+          formData.append(field, '');
+        }
+      });
+
+      if (Object.keys(fileErrors).length > 0) {
+        setError({
+          profile: fileErrors,
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // setProfile(profileData);
+      await updateProfile(formData);
       setNotification('Profile updated successfully');
+
+      setProfileData((profileData) => ({
+        ...profileData,
+        photo: null,
+        id_photo: null,
+        signature_photo: null,
+      }));
     } catch (error) {
       setErrorNotification('Failed to update profile');
+      toast.error('Failed to update profile');
     } finally {
       setTimeout(() => setNotification(null), 10000);
       setTimeout(() => setErrorNotification(null), 10000);
@@ -256,7 +318,7 @@ export default function ProfilePage() {
       reader.onload = (e) => {
         setProfileData((profileData) => ({
           ...profileData,
-          [fieldName]: e.target.result,
+          [fieldName + '_url']: e.target.result,
         }));
       };
       reader.readAsDataURL(file);
@@ -267,11 +329,7 @@ export default function ProfilePage() {
     setProfileData((profileData) => ({
       ...profileData,
       [fieldName]: null,
-    }));
-
-    setProfileData((profileData) => ({
-      ...profileData,
-      [fieldName]: null,
+      [fieldName + '_url']: null,
     }));
 
     if (inputRef.current) {
@@ -802,7 +860,8 @@ export default function ProfilePage() {
                         onChange={handleFileUpload('photo')}
                         onRemove={handleRemoveFile('photo', photoInputRef)}
                         inputRef={photoInputRef}
-                        required={true}
+                        required={false}
+                        error={error?.profile?.photo}
                       />
                       <FileUploadField
                         label={`${
@@ -815,7 +874,8 @@ export default function ProfilePage() {
                         onChange={handleFileUpload('id_photo')}
                         onRemove={handleRemoveFile('id_photo', idPhotoInputRef)}
                         inputRef={idPhotoInputRef}
-                        required={true}
+                        required={false}
+                        error={error?.profile?.id_photo}
                       />
                       <FileUploadField
                         label="Signature Photo"
@@ -828,7 +888,8 @@ export default function ProfilePage() {
                           signatureInputRef
                         )}
                         inputRef={signatureInputRef}
-                        required={true}
+                        required={false}
+                        error={error?.profile?.signature_photo}
                       />
                     </div>
                   </div>

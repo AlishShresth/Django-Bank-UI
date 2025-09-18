@@ -2,10 +2,11 @@ import { create } from 'zustand';
 import { persist, devtools } from 'zustand/middleware';
 import type { Profile, NextOfKin, ProfileState } from '@/types/profile';
 import { apiClient } from '@/lib/axios';
+import {toast} from 'sonner';
 
 interface ProfileStore extends ProfileState {
   getProfile: () => Promise<void>;
-  updateProfile: () => Promise<void>;
+  updateProfile: (formData: FormData) => Promise<void>;
   getNextOfKin: (id: string) => Promise<void>;
   setNextOfKin: (data: NextOfKin) => Promise<void>;
   updateNextOfKin: (data: NextOfKin) => Promise<void>;
@@ -37,14 +38,20 @@ export const useProfileStore = create<ProfileStore>()(
           }
         },
 
-        updateProfile: async () => {
+        updateProfile: async (formData: FormData) => {
           set({ isLoading: true });
           try {
             const response = await apiClient.patch(
               '/v1/profiles/my-profile/',
-              get().profile
+              formData,
+              {
+                headers: {
+                  'Content-Type': undefined,
+                },
+              }
             );
             const { data } = response.data.profile;
+            toast.success(response.data.profile.message || "Profile Updated Successfully");
             set({ profile: data, isLoading: false });
           } catch (error: any) {
             set({

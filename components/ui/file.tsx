@@ -1,8 +1,22 @@
 'use client';
 
+import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
-const FileUploadField = ({
+interface FileUploadFieldProps {
+  label: string;
+  name?: string;
+  accept?: string;
+  required?: boolean;
+  value: File | null;
+  previewUrl?: string;
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onRemove: () => void;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  error?: string;
+}
+
+const FileUploadField: React.FC<FileUploadFieldProps> = ({
   label,
   name,
   accept = 'image/*',
@@ -12,24 +26,23 @@ const FileUploadField = ({
   onChange,
   onRemove,
   inputRef,
-  serverFileName
+  error,
 }) => {
   const [localPreviewUrl, setLocalPreviewUrl] = useState(null);
-  
-  // Use server-provided preview URL if available, otherwise use local preview
-  const previewUrl = initialPreviewUrl || localPreviewUrl;
 
-  const handleFileChange = (e) => {
+  // Use server-provided preview URL if available, otherwise use local preview
+  const previewUrl = localPreviewUrl || initialPreviewUrl;
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      
+
       // Create preview for new files
       const reader = new FileReader();
       reader.onload = (e) => {
         setLocalPreviewUrl(e.target.result);
       };
       reader.readAsDataURL(file);
-      
+
       // Call parent onChange handler
       if (onChange) onChange(e);
     }
@@ -46,22 +59,25 @@ const FileUploadField = ({
   // Determine if we should show file info (has value OR has server preview)
   const hasFile = value || initialPreviewUrl;
 
+  const inputId = name || `input-${Math.random().toString(36).substring(2, 11)}`;
+  const errorId = error ? `${inputId}-error` : undefined;
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 relative">
       <label className="text-sm font-medium text-gray-700 cursor-pointer">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
       <input
         type="file"
-        name={name}
         id={name}
+        name={name}
         ref={inputRef}
         onChange={handleFileChange}
         accept={accept}
         required={required}
-        className="hidden"
+        className="absolute opacity-0 w-0 h-0 overflow-hidden pointer-events-none"
       />
-      
+
       {hasFile ? (
         <div className="space-y-4">
           <div className="file-info flex justify-between items-center p-3 bg-gray-50 rounded-md">
@@ -80,9 +96,13 @@ const FileUploadField = ({
                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                 />
               </svg>
-              <span className="truncate max-w-[200px]">
-                {/* Show server file name if available, otherwise use uploaded file name */}
-                {serverFileName || (value ? value.name : 'Uploaded File')}
+              <span className="truncate max-w-[250px]">
+                {value ? value.name : 'Uploaded File'}
+              </span>
+              <span>
+                {value
+                  ? (value.size / (1024 * 1024)).toPrecision(2) + 'MB'
+                  : ''}
               </span>
             </div>
             <button
@@ -140,14 +160,27 @@ const FileUploadField = ({
           <p className="mt-2 text-sm text-gray-600">
             Click to upload your {label.toLowerCase()}
           </p>
-          <p className="text-xs text-gray-500">PNG, JPG, JPEG up to 5MB</p>
+          <p className="text-xs text-gray-500">PNG, JPG, JPEG up to 1MB</p>
           <button
             type="button"
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-200 ease-in-out hover:translate-y-[-2px]"
+            className={cn(
+              'mt-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-200 ease-in-out hover:translate-y-[-2px]',
+              error && 'border-destructive focus-visible:ring-destructive'
+            )}
           >
             Choose File
           </button>
         </div>
+      )}
+      {error && (
+        <p
+          id={errorId}
+          className="text-sm text-destructive"
+          role="alert"
+          aria-live="polite"
+        >
+          {error}
+        </p>
       )}
     </div>
   );
