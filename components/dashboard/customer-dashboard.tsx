@@ -19,6 +19,7 @@ import { VirtualCard } from '@/types/card';
 import { useProfileStore } from '@/stores/profile-store';
 import { apiClient } from '@/lib/axios';
 import { formatDateRelative } from '@/lib/formatDate';
+import { formatBalance } from '@/lib/utils';
 
 export function CustomerDashboard() {
   const { profile } = useProfileStore();
@@ -111,7 +112,7 @@ export function CustomerDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatsCard
               title="Total Balance"
-              value={currency + ' ' + totalBalance.toString()}
+              value={formatBalance(totalBalance)}
               change={
                 balanceChangePercentage >= 0
                   ? '+' +
@@ -139,12 +140,12 @@ export function CustomerDashboard() {
                     account.account_type.slice(1) +
                     'Account'
                   }
-                  value={currency + ' ' + account.account_balance}
-                  change={
-                    '+' + account.annual_interest_rate * 100 + '% interest'
+                  value={formatBalance(account.account_balance)}
+                  change={account.account_balance > 0 ?
+                    '+' + account.annual_interest_rate * 100 + '% interest' : '+0% interest'
                   }
                   changeType={
-                    account.account_type == 'current' ? 'neutral' : 'positive'
+                    account.account_balance <= 0 ? 'neutral' : 'positive'
                   }
                   icon={
                     account.account_type == 'current' ? (
