@@ -20,8 +20,9 @@ import {
   Filter,
   Download,
 } from 'lucide-react';
-import type { Transaction } from '@/types/banking';
-import { formatDate } from '@/lib/utils';
+import type { Transaction } from '@/types/transaction';
+import { formatDate, formatBalance } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -35,26 +36,68 @@ export function TransactionList({
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [isExporting, setIsExporting] = useState(false);
 
   const filteredTransactions = transactions.filter((transaction) => {
     const matchesSearch =
-      transaction.description
+      transaction?.description
+        ?.toLowerCase()
+        ?.includes(searchTerm.toLowerCase()) ||
+      transaction.id
+        .toString()
         .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      transaction.reference?.toLowerCase().includes(searchTerm.toLowerCase());
+        .includes(searchTerm.toLowerCase());
 
-    const matchesType = typeFilter === 'all' || transaction.type === typeFilter;
+    const matchesType =
+      typeFilter === 'all' || transaction.transaction_type === typeFilter;
     const matchesStatus =
       statusFilter === 'all' || transaction.status === statusFilter;
 
     return matchesSearch && matchesType && matchesStatus;
   });
 
-  const formatAmount = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: currency,
-    }).format(amount);
+  const exportToExcel = async () => {
+    if (filteredTransactions.length === 0) return;
+
+    setIsExporting(true);
+    try {
+      const XLSX = await import('xlsx');
+
+      const excelData = filteredTransactions.map((transaction) => ({
+        ID: transaction.id,
+        Description: transaction.description,
+        Type: transaction.transaction_type,
+        Amount:
+          transaction.transaction_type === 'deposit'
+            ? `+${formatBalance(transaction.amount, transaction.currency)}`
+            : `-${formatBalance(transaction.amount, transaction.currency)}`,
+        Currency: transaction.currency,
+        Status: transaction.status,
+        Date: formatDate(transaction.created_at),
+        'Sender Account': transaction.sender_account
+          ? transaction.sender_account
+          : 'N/A',
+        'Receiver Account': transaction.receiver_account
+          ? transaction.receiver_account
+          : 'N/A',
+      }));
+
+      // Create a workbook and worksheet
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+
+      // Generate the Excel file and trigger download
+      XLSX.writeFile(
+        wb,
+        `transactions_${new Date().toISOString().split('T')[0]}.xlsx`
+      );
+    } catch (error: any) {
+      console.error('Error exporting transactions:', error);
+      toast.error('Error exporting transactions');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const getTransactionIcon = (type: string) => {
@@ -132,9 +175,23 @@ export function TransactionList({
               <SelectItem value="failed">Failed</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Export
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportToExcel}
+            disabled={isExporting || filteredTransactions.length === 0}
+          >
+            {isExporting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>{' '}
+                Exporting...
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </>
+            )}
           </Button>
         </div>
       </div>
@@ -158,24 +215,29 @@ export function TransactionList({
                   className="flex items-center justify-between p-4 hover:bg-muted/50"
                 >
                   <div className="flex items-center gap-3">
-                    {getTransactionIcon(transaction.type)}
+                    {getTransactionIcon(transaction.transaction_type)}
                     <div>
                       <p className="font-medium text-foreground">
                         {transaction.description}
                       </p>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>{formatDate(transaction.createdAt)}</span>
-                        {transaction.reference && (
-                          <>
-                            <span>•</span>
-                            <span>{transaction.reference}</span>
-                          </>
-                        )}
-                        {transaction.beneficiaryAccount && (
+                        <span>{formatDate(transaction.created_at)}</span>
+                        {transaction.id && (
                           <>
                             <span>•</span>
                             <span>
-                              To: ****{transaction.beneficiaryAccount.slice(-4)}
+                              {transaction.id.toString().split('-').at(-1)}
+                            </span>
+                          </>
+                        )}
+                        {transaction.receiver_account && (
+                          <>
+                            <span>•</span>
+                            <span>
+                              To: ****
+                              {transaction.receiver_account
+                                ?.toString()
+                                ?.slice(-4)}
                             </span>
                           </>
                         )}
@@ -185,13 +247,13 @@ export function TransactionList({
                   <div className="text-right">
                     <p
                       className={`font-semibold ${
-                        transaction.type === 'deposit'
+                        transaction.transaction_type === 'deposit'
                           ? 'text-success'
-                          : 'text-foreground'
+                          : 'text-destructive'
                       }`}
                     >
-                      {transaction.type === 'deposit' ? '+' : '-'}
-                      {formatAmount(transaction.amount, transaction.currency)}
+                      {transaction.transaction_type === 'deposit' ? '+' : '-'}
+                      {formatBalance(transaction.amount, transaction.currency)}
                     </p>
                     <Badge className={getStatusColor(transaction.status)}>
                       {transaction.status}
