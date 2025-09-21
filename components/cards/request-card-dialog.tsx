@@ -17,10 +17,10 @@ import { FormInput } from "@/components/ui/form-input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Plus, CreditCard } from "lucide-react"
-import type { Account } from "@/types/banking"
+import type { BankAccount } from "@/types/banking"
 
 interface RequestCardDialogProps {
-  accounts: Account[]
+  accounts: BankAccount[]
   onRequestCard: (cardData: any) => Promise<void>
 }
 
@@ -124,7 +124,7 @@ export function RequestCardDialog({ accounts, onRequestCard }: RequestCardDialog
               <SelectContent>
                 {accounts.map((account) => (
                   <SelectItem key={account.id} value={account.id}>
-                    {account.accountType} ****{account.accountNumber.slice(-4)}
+                    {account.account_type} ****{account.account_number.slice(-4)}
                   </SelectItem>
                 ))}
               </SelectContent>

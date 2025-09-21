@@ -23,14 +23,15 @@ import {
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus, CreditCard } from 'lucide-react';
-import type { Card as BankCard, BankAccount } from '@/types/banking';
+import type { BankAccount } from '@/types/banking';
+import { VirtualCard } from '@/types/card';
 import { formatBalance } from '@/lib/utils';
 
 interface CardTopupDialogProps {
-  card: BankCard;
+  card: VirtualCard;
   accounts: BankAccount[];
   onTopup: (
-    cardId: string,
+    cardId: number,
     amount: number,
     fromAccountId: string
   ) => Promise<void>;
@@ -73,7 +74,7 @@ export function CardTopupDialog({
       const sourceAccount = accounts.find(
         (acc) => acc.id === formData.fromAccountId
       );
-      if (sourceAccount && Number(formData.amount) > sourceAccount.balance) {
+      if (sourceAccount && Number(formData.amount) > sourceAccount.account_balance) {
         newErrors.amount = 'Insufficient funds in source account';
       }
     }
