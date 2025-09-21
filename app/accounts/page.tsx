@@ -16,36 +16,25 @@ import { Search, Filter } from 'lucide-react';
 import type { BankAccount } from '@/types/banking';
 import { useAuthStore } from '@/stores/auth-store';
 import { apiClient } from '@/lib/axios';
+import { useAccountStore } from '@/stores/account-store';
 
 export default function AccountsPage() {
-  const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [filteredAccounts, setFilteredAccounts] = useState<BankAccount[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
-  const [isLoading, setIsLoading] = useState(true);
 
   const { user } = useAuthStore();
-
-  const fetchUserAccounts = async () => {
-    try {
-      setIsLoading(true);
-      const response = await apiClient.get('/v1/accounts/accounts');
-      setAccounts(response.data.account_list.results);
-      setFilteredAccounts(response.data.account_list.results);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { getAccounts, account_list, isLoading } = useAccountStore();
 
   useEffect(() => {
-    fetchUserAccounts();
+    if (account_list.length == 0) {
+      getAccounts();
+    }
   }, []);
 
   useEffect(() => {
-    let filtered = accounts;
+    let filtered = account_list;
 
     if (searchTerm) {
       filtered = filtered.filter(
@@ -68,22 +57,8 @@ export default function AccountsPage() {
     }
 
     setFilteredAccounts(filtered);
-  }, [accounts, searchTerm, statusFilter, typeFilter]);
+  }, [account_list, searchTerm, statusFilter, typeFilter]);
 
-  const handleCreateAccount = async (accountData: any) => {
-    try {
-      const response = await apiClient.post(
-        '/v1/accounts/accounts/',
-        accountData
-      );
-      setAccounts([...accounts, response.data.account_list]);
-    } catch (error: any) {
-      console.error(error.response.data.account_list.error);
-      throw new Error(
-        error.response.data.account_list.error || 'Failed to create account'
-      );
-    }
-  };
 
   const handleFreezeAccount = async (accountId: string) => {
     // setAccounts(
@@ -125,7 +100,7 @@ export default function AccountsPage() {
                 : 'View your account information'}
             </p>
           </div>
-          <CreateAccountDialog onCreateAccount={handleCreateAccount} />
+          <CreateAccountDialog />
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4">

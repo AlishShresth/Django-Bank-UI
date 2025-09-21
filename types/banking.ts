@@ -32,3 +32,16 @@ export type AccountCurrency =
   | 'us_dollar'
   | 'pound_sterling'
   | 'nepalese_rupees';
+
+export interface AccountState {
+  account_list: BankAccount[];
+  isLoading: boolean;
+  error: Record<string, any> | null;
+}
+
+export interface BankAccountPayload {
+  account_type: AccountType;
+  initial_deposit?: number;
+  email: string;
+  currency: AccountCurrency;
+}
