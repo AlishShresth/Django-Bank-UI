@@ -13,37 +13,20 @@ import {
   PlusCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { VirtualCard } from '@/types/card';
 import { useProfileStore } from '@/stores/profile-store';
 import { useAccountStore } from '@/stores/account-store';
 import { useTransactionStore } from '@/stores/transaction-store';
-import { apiClient } from '@/lib/axios';
 import { formatDateRelative } from '@/lib/formatDate';
 import { formatBalance } from '@/lib/utils';
+import { useCardStore } from '@/stores/card-store';
 
 export function CustomerDashboard() {
   const { profile } = useProfileStore();
   const { getAccounts, account_list, isLoading } = useAccountStore();
   const { getTransactions, transaction_list } = useTransactionStore();
-  const [cards, setCards] = useState([] as VirtualCard[]);
+  const { getCards, card_list, debit_cards, credit_cards } = useCardStore();
   const [totalBalance, setTotalBalance] = useState(0);
   const [balanceChangePercentage, setBalanceChangePercentage] = useState(0);
-  const [debitCards, setDebitCards] = useState(0);
-  const [creditCards, setCreditCards] = useState(0);
-
-  const fetchCards = async () => {
-    try {
-      const response = await apiClient.get('/v1/cards/virtual-cards/');
-      setCards(response.data.card_list.results);
-      if (response.data.card_list.results.length > 0) {
-        setDebitCards(response.data.card_list.results[0].debit_cards_count);
-        setCreditCards(response.data.card_list.results[0].credit_cards_count);
-      }
-    } catch (error: any) {
-      console.error(error);
-      setCards([]);
-    }
-  };
 
   useEffect(() => {
     if (account_list.length == 0) {
@@ -53,10 +36,12 @@ export function CustomerDashboard() {
 
   useEffect(() => {
     if (account_list.length == 0) return;
-    if(transaction_list.length == 0){ 
+    if (transaction_list.length == 0) {
       getTransactions();
     }
-    fetchCards();
+    if (card_list.length == 0) {
+      getCards();
+    }
     let amount = 0;
     let changePercent = 0;
     for (let i = 0; i < account_list.length; i++) {
@@ -140,14 +125,14 @@ export function CustomerDashboard() {
               ))}
             <StatsCard
               title="Active Cards"
-              value={(debitCards + creditCards).toString()}
+              value={(debit_cards + credit_cards).toString()}
               change={
-                debitCards > 0 && creditCards > 0
-                  ? `${debitCards} debit, ${creditCards} credit`
-                  : debitCards
-                  ? `${debitCards} debit`
-                  : creditCards
-                  ? `${creditCards} credit}`
+                debit_cards > 0 && credit_cards > 0
+                  ? `${debit_cards} debit, ${credit_cards} credit`
+                  : debit_cards
+                  ? `${debit_cards} debit`
+                  : credit_cards
+                  ? `${credit_cards} credit}`
                   : 'No active cards'
               }
               changeType="neutral"
