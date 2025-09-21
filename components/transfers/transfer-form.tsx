@@ -15,7 +15,8 @@ import {
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowRight, Shield } from 'lucide-react';
-import type { BankAccount, Transfer } from '@/types/banking';
+import type { BankAccount } from '@/types/banking';
+import type { Transfer } from '@/types/transaction';
 import { formatBalance } from '@/lib/utils';
 
 interface TransferFormProps {
@@ -25,11 +26,10 @@ interface TransferFormProps {
 
 export function TransferForm({ accounts, onTransfer }: TransferFormProps) {
   const [formData, setFormData] = useState({
-    fromAccountId: '',
-    toAccountId: '',
+    sender_account: '',
+    receiver_account: '',
     amount: '',
     description: '',
-    reference: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -38,16 +38,16 @@ export function TransferForm({ accounts, onTransfer }: TransferFormProps) {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.fromAccountId) {
-      newErrors.fromAccountId = 'Please select a source account';
+    if (!formData.sender_account) {
+      newErrors.sender_account = 'Please select a source account';
     }
 
-    if (!formData.toAccountId) {
-      newErrors.toAccountId = 'Please select a destination account';
+    if (!formData.receiver_account) {
+      newErrors.receiver_account = 'Please select a destination account';
     }
 
-    if (formData.fromAccountId === formData.toAccountId) {
-      newErrors.toAccountId =
+    if (formData.sender_account === formData.receiver_account) {
+      newErrors.receiver_account =
         'Source and destination accounts must be different';
     }
 
@@ -57,7 +57,7 @@ export function TransferForm({ accounts, onTransfer }: TransferFormProps) {
       newErrors.amount = 'Please enter a valid amount';
     } else {
       const sourceAccount = accounts.find(
-        (acc) => acc.id === formData.fromAccountId
+        (acc) => acc.id === formData.sender_account
       );
       if (
         sourceAccount &&
@@ -88,20 +88,18 @@ export function TransferForm({ accounts, onTransfer }: TransferFormProps) {
     setIsLoading(true);
     try {
       await onTransfer({
-        fromAccountId: formData.fromAccountId,
-        toAccountId: formData.toAccountId,
+        sender_account: formData.sender_account,
+        receiver_account: formData.receiver_account,
         amount: Number(formData.amount),
         description: formData.description,
-        reference: formData.reference || undefined,
       });
 
       // Reset form
       setFormData({
-        fromAccountId: '',
-        toAccountId: '',
+        sender_account: '',
+        receiver_account: '',
         amount: '',
         description: '',
-        reference: '',
       });
       setShowConfirmation(false);
       setErrors({});
@@ -115,10 +113,10 @@ export function TransferForm({ accounts, onTransfer }: TransferFormProps) {
   };
 
   const sourceAccount = accounts.find(
-    (acc) => acc.id === formData.fromAccountId
+    (acc) => acc.id === formData.sender_account
   );
   const destinationAccount = accounts.find(
-    (acc) => acc.id === formData.toAccountId
+    (acc) => acc.id === formData.receiver_account
   );
 
   if (showConfirmation) {
@@ -175,15 +173,6 @@ export function TransferForm({ accounts, onTransfer }: TransferFormProps) {
                 <p className="font-medium">{formData.description}</p>
               </div>
             </div>
-
-            {formData.reference && (
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Reference
-                </p>
-                <p className="font-medium">{formData.reference}</p>
-              </div>
-            )}
           </div>
 
           {errors.general && (
@@ -232,9 +221,9 @@ export function TransferForm({ accounts, onTransfer }: TransferFormProps) {
                 From Account
               </label>
               <Select
-                value={formData.fromAccountId}
+                value={formData.sender_account}
                 onValueChange={(value) =>
-                  setFormData({ ...formData, fromAccountId: value })
+                  setFormData({ ...formData, sender_account: value })
                 }
               >
                 <SelectTrigger>
@@ -259,9 +248,9 @@ export function TransferForm({ accounts, onTransfer }: TransferFormProps) {
                   ))}
                 </SelectContent>
               </Select>
-              {errors.fromAccountId && (
+              {errors.sender_account && (
                 <p className="text-sm text-destructive">
-                  {errors.fromAccountId}
+                  {errors.sender_account}
                 </p>
               )}
             </div>
@@ -271,9 +260,9 @@ export function TransferForm({ accounts, onTransfer }: TransferFormProps) {
                 To Account
               </label>
               <Select
-                value={formData.toAccountId}
+                value={formData.receiver_account}
                 onValueChange={(value) =>
-                  setFormData({ ...formData, toAccountId: value })
+                  setFormData({ ...formData, receiver_account: value })
                 }
               >
                 <SelectTrigger>
@@ -288,8 +277,10 @@ export function TransferForm({ accounts, onTransfer }: TransferFormProps) {
                   ))}
                 </SelectContent>
               </Select>
-              {errors.toAccountId && (
-                <p className="text-sm text-destructive">{errors.toAccountId}</p>
+              {errors.receiver_account && (
+                <p className="text-sm text-destructive">
+                  {errors.receiver_account}
+                </p>
               )}
             </div>
           </div>
@@ -318,17 +309,6 @@ export function TransferForm({ accounts, onTransfer }: TransferFormProps) {
             error={errors.description}
             placeholder="What is this transfer for?"
             required
-          />
-
-          <FormInput
-            label="Reference (Optional)"
-            type="text"
-            value={formData.reference}
-            onChange={(e) =>
-              setFormData({ ...formData, reference: e.target.value })
-            }
-            error={errors.reference}
-            placeholder="Reference number or note"
           />
 
           {sourceAccount && (
