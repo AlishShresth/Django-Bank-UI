@@ -18,3 +18,11 @@ export interface VirtualCard {
 export type CardStatus = 'active' | 'inactive' | 'blocked';
 
 export type CardType = 'credit' | 'debit';
+
+export interface CardState {
+  card_list: VirtualCard[];
+  isLoading: boolean;
+  error: Record<string, any>|null;
+  debit_cards: number;
+  credit_cards: number;
+}

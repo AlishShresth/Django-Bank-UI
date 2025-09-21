@@ -1,11 +1,11 @@
 import { create } from 'zustand';
 import { persist, devtools } from 'zustand/middleware';
-import type { Transaction, TransactionState } from '@/types/transaction';
+import type { VirtualCard, CardState } from '@/types/card';
 import { apiClient } from '@/lib/axios';
 import { toast } from 'sonner';
 
-interface TransactionStore extends TransactionState {
-  getTransactions: () => Promise<void>;
+interface CardStore extends CardState {
+  getCards: () => Promise<void>;
   // createAccount: (data: Transaction) => Promise<void>;
   // updateAccount: (data: Transaction) => Promise<void>;
   // deleteAccount: (id: string) => Promise<void>;
@@ -13,23 +13,30 @@ interface TransactionStore extends TransactionState {
   setError: (error: Record<string, any> | null) => void;
 }
 
-export const useTransactionStore = create<TransactionStore>()(
+export const useCardStore = create<CardStore>()(
   devtools(
     persist(
       (set, get) => ({
-        transaction_list: [],
+        card_list: [],
         isLoading: false,
         error: null,
+        debit_cards: 0,
+        credit_cards: 0,
 
-        getTransactions: async () => {
+        getCards: async () => {
           set({ isLoading: true });
           try {
-            const response = await apiClient.get('/v1/accounts/transactions/');
-            set({ transaction_list: response.data.transaction_list.results });
+            const response = await apiClient.get('/v1/cards/virtual-cards/');
+            set({
+              card_list: response.data.card_list.results,
+              debit_cards: response.data.card_list.results[0].debit_cards_count,
+              credit_cards:
+                response.data.card_list.results[0].credit_cards_count,
+            });
           } catch (error: any) {
             console.error(error);
             toast.error('Error fetching transactions');
-            set({ transaction_list: [] });
+            set({ card_list: [] });
           } finally {
             set({ isLoading: false });
           }
@@ -48,9 +55,11 @@ export const useTransactionStore = create<TransactionStore>()(
       {
         name: 'transaction-store',
         partialize: (state) => ({
-          transaction_list: state.transaction_list,
+          card_list: state.card_list,
           isLoading: state.isLoading,
           error: state.error,
+          debit_cards: state.debit_cards,
+          credit_cards: state.credit_cards,
         }),
       }
     )
