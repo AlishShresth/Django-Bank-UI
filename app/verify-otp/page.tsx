@@ -23,7 +23,7 @@ import { Shield, Clock, Mail } from 'lucide-react';
 export default function VerifyOTPPage() {
   const expiryTime = 3 * 60;
   const [otp, setOtp] = useState('');
-  const [timeLeft, setTimeLeft] = useState(expiryTime); // 1 minute countdown
+  const [timeLeft, setTimeLeft] = useState(expiryTime); // 3 minute countdown
   const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
