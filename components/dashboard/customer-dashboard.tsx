@@ -25,7 +25,7 @@ export function CustomerDashboard() {
   const { getAccounts, account_list, isLoading } = useAccountStore();
   const { getTransactions, transaction_list } = useTransactionStore();
   const { getCards, card_list, debit_cards, credit_cards } = useCardStore();
-  const [totalBalance, setTotalBalance] = useState(0);
+  const [totalBalance, setTotalBalance] = useState('0');
   const [balanceChangePercentage, setBalanceChangePercentage] = useState(0);
 
   useEffect(() => {
@@ -53,7 +53,7 @@ export function CustomerDashboard() {
       }
     }
     changePercent /= account_list.length;
-    setTotalBalance(amount);
+    setTotalBalance(amount.toString());
     setBalanceChangePercentage(changePercent);
   }, [account_list]);
 
@@ -107,12 +107,15 @@ export function CustomerDashboard() {
                   }
                   value={formatBalance(account.account_balance)}
                   change={
-                    account.account_balance > 0
+                    parseFloat(account.account_balance) > 0
                       ? '+' + account.annual_interest_rate * 100 + '% interest'
                       : '+0% interest'
                   }
                   changeType={
-                    account.account_balance <= 0 ? 'neutral' : 'positive'
+                    account.annual_interest_rate * 100 > 0 &&
+                    parseFloat(account.account_balance) > 0
+                      ? 'positive'
+                      : 'neutral'
                   }
                   icon={
                     account.account_type == 'current' ? (
@@ -149,7 +152,7 @@ export function CustomerDashboard() {
               <CardContent>
                 <div className="space-y-4">
                   {transaction_list.length > 0 ? (
-                    transaction_list.map((transaction, index) => (
+                    transaction_list.slice(0, 5).map((transaction, index) => (
                       <div
                         key={index}
                         className="flex items-center justify-between"
