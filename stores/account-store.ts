@@ -15,21 +15,35 @@ interface AccountStore extends AccountState {
   deleteAccount: (id: string) => Promise<void>;
   setLoading: (loading: boolean) => void;
   setError: (error: Record<string, any> | null) => void;
+  setAccounts: (accounts: BankAccount[]) => void;
+  resetAccounts: () => void;
 }
+
+const initialState = {
+  account_list: [],
+  isLoading: false,
+  error: null,
+  count: null,
+  next: null,
+  previous: null,
+};
 
 export const useAccountStore = create<AccountStore>()(
   devtools(
     persist(
       (set, get) => ({
-        account_list: [],
-        isLoading: false,
-        error: null,
+        ...initialState,
 
         getAccounts: async () => {
           set({ isLoading: true });
           try {
             const response = await apiClient.get('/v1/accounts/accounts/');
-            set({ account_list: response.data.account_list.results });
+            set({
+              account_list: response.data.account_list.results,
+              count: response.data.account_list.count,
+              next: response.data.account_list.next,
+              previous: response.data.account_list.previous,
+            });
           } catch (error: any) {
             console.error(error);
             toast.error('Error fetching accounts');
@@ -63,14 +77,24 @@ export const useAccountStore = create<AccountStore>()(
             set({ isLoading: false });
           }
         },
+
         updateAccount: async (data: BankAccount) => {},
+
         deleteAccount: async (id: string) => {},
+
         setLoading: (loading: boolean) => {
           set({ isLoading: loading });
         },
+
         setError: (error: Record<string, any> | null) => {
           set({ error });
         },
+
+        setAccounts: (accounts: BankAccount[]) => {
+          set({ account_list: accounts });
+        },
+
+        resetAccounts: () => set(initialState),
       }),
       {
         name: 'account-store',
@@ -78,6 +102,9 @@ export const useAccountStore = create<AccountStore>()(
           account_list: state.account_list,
           isLoading: state.isLoading,
           error: state.error,
+          count: state.count,
+          next: state.next,
+          previous: state.previous,
         }),
       }
     )

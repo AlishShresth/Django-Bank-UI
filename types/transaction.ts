@@ -37,4 +37,7 @@ export interface TransactionState {
   transaction_list: Transaction[];
   isLoading: boolean;
   error: Record<string, any> | null;
+  count: number | null;
+  next: string | null;
+  previous: string | null;
 }

@@ -4,7 +4,7 @@ import { Transaction } from './transaction';
 export interface BankAccount {
   id: string;
   account_number: string;
-  account_balance: number;
+  account_balance: string;
   currency: AccountCurrency;
   account_status: AccountStatus;
   account_type: AccountType;
@@ -37,6 +37,9 @@ export interface AccountState {
   account_list: BankAccount[];
   isLoading: boolean;
   error: Record<string, any> | null;
+  count: number | null;
+  next: string | null;
+  previous: string | null;
 }
 
 export interface BankAccountPayload {

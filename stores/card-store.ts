@@ -11,17 +11,22 @@ interface CardStore extends CardState {
   // deleteAccount: (id: string) => Promise<void>;
   setLoading: (loading: boolean) => void;
   setError: (error: Record<string, any> | null) => void;
+  resetCards: () => void;
 }
+
+const initialState = {
+  card_list: [],
+  isLoading: false,
+  error: null,
+  debit_cards: 0,
+  credit_cards: 0,
+};
 
 export const useCardStore = create<CardStore>()(
   devtools(
     persist(
       (set, get) => ({
-        card_list: [],
-        isLoading: false,
-        error: null,
-        debit_cards: 0,
-        credit_cards: 0,
+        ...initialState,
 
         getCards: async () => {
           set({ isLoading: true });
@@ -29,9 +34,10 @@ export const useCardStore = create<CardStore>()(
             const response = await apiClient.get('/v1/cards/virtual-cards/');
             set({
               card_list: response.data.card_list.results,
-              debit_cards: response.data.card_list.results[0].debit_cards_count,
+              debit_cards:
+                response.data.card_list.results[0]?.debit_cards_count,
               credit_cards:
-                response.data.card_list.results[0].credit_cards_count,
+                response.data.card_list.results[0]?.credit_cards_count,
             });
           } catch (error: any) {
             console.error(error);
@@ -48,9 +54,12 @@ export const useCardStore = create<CardStore>()(
         setLoading: (loading: boolean) => {
           set({ isLoading: loading });
         },
+
         setError: (error: Record<string, any> | null) => {
           set({ error });
         },
+
+        resetCards: () => set(initialState),
       }),
       {
         name: 'transaction-store',

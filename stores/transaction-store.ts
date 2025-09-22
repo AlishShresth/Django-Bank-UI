@@ -11,21 +11,35 @@ interface TransactionStore extends TransactionState {
   // deleteAccount: (id: string) => Promise<void>;
   setLoading: (loading: boolean) => void;
   setError: (error: Record<string, any> | null) => void;
+  setTransactions: (transactions: Transaction[]) => void;
+  resetTransactions: () => void;
 }
+
+const initialState = {
+  transaction_list: [],
+  isLoading: false,
+  error: null,
+  count: 0,
+  next: '',
+  previous: '',
+};
 
 export const useTransactionStore = create<TransactionStore>()(
   devtools(
     persist(
       (set, get) => ({
-        transaction_list: [],
-        isLoading: false,
-        error: null,
+        ...initialState,
 
         getTransactions: async () => {
           set({ isLoading: true });
           try {
             const response = await apiClient.get('/v1/accounts/transactions/');
-            set({ transaction_list: response.data.transaction_list.results });
+            set({
+              transaction_list: response.data.transaction_list.results,
+              count: response.data.transaction_list.count,
+              next: response.data.transaction_list.next,
+              previous: response.data.transaction_list.previous,
+            });
           } catch (error: any) {
             console.error(error);
             toast.error('Error fetching transactions');
@@ -38,12 +52,20 @@ export const useTransactionStore = create<TransactionStore>()(
         // createAccount: async (data: BankAccount) => {},
         // updateAccount: async (data: BankAccount) => {},
         // deleteAccount: async (id: string) => {},
+
         setLoading: (loading: boolean) => {
           set({ isLoading: loading });
         },
+
         setError: (error: Record<string, any> | null) => {
           set({ error });
         },
+
+        setTransactions: (transactions: Transaction[]) => {
+          set({ transaction_list: transactions });
+        },
+
+        resetTransactions: () => set(initialState),
       }),
       {
         name: 'transaction-store',
@@ -51,6 +73,9 @@ export const useTransactionStore = create<TransactionStore>()(
           transaction_list: state.transaction_list,
           isLoading: state.isLoading,
           error: state.error,
+          count: state.count,
+          next: state.next,
+          previous: state.previous,
         }),
       }
     )
