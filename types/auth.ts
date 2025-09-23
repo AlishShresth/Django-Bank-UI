@@ -1,3 +1,5 @@
+import type { Profile } from './profile';
+
 export interface User {
   id: string;
   username?: string;
@@ -26,6 +28,8 @@ export interface AuthState {
   email: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  profile: Profile | null;
+  message: string | null;
 }
 
 export interface LoginCredentials {

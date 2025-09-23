@@ -67,17 +67,19 @@ const generateProfileData = (profile: Profile | null): ProfileData => ({
   gender: profile?.gender || ('male' as Gender),
   date_of_birth: profile?.date_of_birth || '',
   country_of_birth: profile?.country_of_birth || '',
-  place_of_birth: profile?.place_of_birth || '',
+  place_of_birth:
+    profile?.place_of_birth != 'Unknown' ? profile?.place_of_birth || '' : '',
   marital_status: profile?.marital_status || ('single' as MaritalStatus),
   means_of_identification:
     profile?.means_of_identification || ('citizenship' as IdentificationMeans),
   id_issue_date: profile?.id_issue_date || '',
   id_expiry_date: profile?.id_expiry_date || '',
   passport_number: profile?.passport_number || '',
-  nationality: profile?.nationality || '',
+  nationality:
+    profile?.nationality != 'Unknown' ? profile?.nationality || '' : '',
   phone_number: profile?.phone_number || '',
-  address: profile?.address || '',
-  city: profile?.city || '',
+  address: profile?.address != 'Unknown' ? profile?.address || '' : '',
+  city: profile?.city != 'Unknown' ? profile?.city || '' : '',
   country: profile?.country || '',
   employment_status:
     profile?.employment_status || ('employed' as EmploymentStatus),

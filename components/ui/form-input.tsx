@@ -14,7 +14,7 @@ export interface InputProps
 const FormInput = forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, label, error, helperText, ...props }, ref) => {
     const inputId =
-      props.id || `input-${Math.random().toString(36).substr(2, 9)}`;
+      props.id || `input-${Math.random().toString(36).substring(2, 11)}`;
     const errorId = error ? `${inputId}-error` : undefined;
     const helperId = helperText ? `${inputId}-helper` : undefined;
 

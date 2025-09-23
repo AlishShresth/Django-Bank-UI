@@ -1,29 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { TransactionList } from '@/components/transactions/transaction-list';
-import type { Transaction } from '@/types/transaction';
-import { apiClient } from '@/lib/axios';
+import { useTransactionStore } from '@/stores/transaction-store';
 
 export default function TransactionsPage() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { getTransactions, transaction_list, isLoading } =
+    useTransactionStore();
 
-  const fetchTransactions = async () => {
-    try {
-      setIsLoading(true);
-      const response = await apiClient.get('/v1/accounts/transactions/');
-      setTransactions(response.data.transaction_list.results);
-    } catch (error: any) {
-      console.error(error);
-      setTransactions([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
   useEffect(() => {
-    fetchTransactions();
+    if (transaction_list.length == 0) {
+      getTransactions();
+    }
   }, []);
 
   return (
@@ -36,7 +25,10 @@ export default function TransactionsPage() {
           </p>
         </div>
 
-        <TransactionList transactions={transactions} isLoading={isLoading} />
+        <TransactionList
+          transactions={transaction_list}
+          isLoading={isLoading}
+        />
       </div>
     </DashboardLayout>
   );

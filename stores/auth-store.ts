@@ -9,6 +9,7 @@ import type {
   OTP,
 } from '@/types/auth';
 import { apiClient } from '@/lib/axios';
+import { resetAllStores } from '@/lib/utils';
 
 interface AuthStore extends AuthState {
   login: (
@@ -23,18 +24,23 @@ interface AuthStore extends AuthState {
   refreshUser: () => Promise<void>;
   setLoading: (loading: boolean) => void;
   getUser: () => User | null;
+  resetUsers: () => void;
 }
+
+const initialState = {
+  email: null,
+  user: null,
+  profile: null,
+  isAuthenticated: false,
+  isLoading: false,
+  message: null,
+};
 
 export const useAuthStore = create<AuthStore>()(
   devtools(
     persist(
       (set, get) => ({
-        email: null,
-        user: null,
-        profile: null,
-        isAuthenticated: false,
-        isLoading: false,
-        message: null,
+        ...initialState,
 
         login: async (credentials: LoginCredentials) => {
           set({ isLoading: true });
@@ -62,7 +68,11 @@ export const useAuthStore = create<AuthStore>()(
           set({ isLoading: true });
           try {
             const response = await apiClient.post('/v1/auth/verify-otp/', otp);
-            set({ isLoading: false, user: response.data.user, isAuthenticated: true });
+            set({
+              isLoading: false,
+              user: response.data.user,
+              isAuthenticated: true,
+            });
           } catch (error) {
             set({ isLoading: false, isAuthenticated: false, user: null });
             throw error;
@@ -139,6 +149,8 @@ export const useAuthStore = create<AuthStore>()(
               user: null,
             });
             throw error;
+          } finally {
+            resetAllStores();
           }
         },
 
@@ -153,16 +165,20 @@ export const useAuthStore = create<AuthStore>()(
         setLoading: (loading: boolean) => {
           set({ isLoading: loading });
         },
-        
+
         getUser: () => {
           return get().user;
-        }
+        },
+
+        resetUsers: () => set(initialState),
       }),
       {
         name: 'auth-storage',
         partialize: (state) => ({
           user: state.user,
           email: state.email,
+          profile: state.profile,
+          message: state.message,
           isAuthenticated: state.isAuthenticated,
           isLoading: state.isLoading,
         }),

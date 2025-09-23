@@ -140,7 +140,7 @@ const FileUploadField: React.FC<FileUploadFieldProps> = ({
         </div>
       ) : (
         <div
-          className="upload-area border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 transition-colors"
+          className="upload-area border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
           onClick={() => inputRef.current?.click()}
         >
           <svg
@@ -164,7 +164,7 @@ const FileUploadField: React.FC<FileUploadFieldProps> = ({
           <button
             type="button"
             className={cn(
-              'mt-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-all duration-200 ease-in-out hover:translate-y-[-2px]',
+              'mt-4 px-4 py-2 bg-secondary text-muted-foreground rounded-md hover:ring-1 hover:ring-primary transition-all duration-200 ease-in-out hover:translate-y-[-2px] cursor-pointer',
               error && 'border-destructive focus-visible:ring-destructive'
             )}
           >

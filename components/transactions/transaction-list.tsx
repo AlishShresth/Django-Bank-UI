@@ -43,10 +43,9 @@ export function TransactionList({
       transaction?.description
         ?.toLowerCase()
         ?.includes(searchTerm.toLowerCase()) ||
-      transaction.id
-        .toString()
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
+      transaction?.reference_number
+        ?.toLowerCase()
+        ?.includes(searchTerm.toLowerCase());
 
     const matchesType =
       typeFilter === 'all' || transaction.transaction_type === typeFilter;
@@ -64,14 +63,13 @@ export function TransactionList({
       const XLSX = await import('xlsx');
 
       const excelData = filteredTransactions.map((transaction) => ({
-        ID: transaction.id,
+        Reference: transaction.reference_number,
         Description: transaction.description,
         Type: transaction.transaction_type,
         Amount:
           transaction.transaction_type === 'deposit'
             ? `+${formatBalance(transaction.amount, transaction.currency)}`
             : `-${formatBalance(transaction.amount, transaction.currency)}`,
-        Currency: transaction.currency,
         Status: transaction.status,
         Date: formatDate(transaction.created_at),
         'Sender Account': transaction.sender_account
@@ -225,9 +223,7 @@ export function TransactionList({
                         {transaction.id && (
                           <>
                             <span>•</span>
-                            <span>
-                              {transaction.id.toString().split('-').at(-1)}
-                            </span>
+                            <span>{transaction.reference_number}</span>
                           </>
                         )}
                         {transaction.receiver_account && (

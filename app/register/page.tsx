@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import { Shield, Eye, EyeOff, Mail, CheckCircle } from 'lucide-react';
 import type { SecurityQuestions } from '@/types/auth';
+import { security_questions } from '@/lib/security_questions';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -35,7 +36,7 @@ export default function RegisterPage() {
     last_name: '',
     security_question: 'birth_city' as SecurityQuestions,
     security_answer: '',
-    id_no: null as null | number,
+    id_no: 0,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -55,10 +56,10 @@ export default function RegisterPage() {
     if (!formData.last_name.trim()) {
       newErrors.last_name = 'Last name is required';
     }
-    
+
     if (!formData.id_no) {
       newErrors.id_no = 'ID Number is required';
-    } else if(formData.id_no <= 0) {
+    } else if (formData.id_no <= 0) {
       newErrors.id_no = 'ID Number must be a valid positive number';
     }
 
@@ -67,17 +68,23 @@ export default function RegisterPage() {
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
     }
-    
+
     if (!formData.security_question) {
       newErrors.security_question = 'Security Question is required';
-    } else if(!['birth_city', 'maiden_name','favorite_color','childhood_friend'].includes(formData.security_question)){
+    } else if (
+      ![
+        'birth_city',
+        'maiden_name',
+        'favorite_color',
+        'childhood_friend',
+      ].includes(formData.security_question)
+    ) {
       newErrors.security_question = 'Select a valid security question';
     }
-    
-    if(!formData.security_answer.trim()){
+
+    if (!formData.security_answer.trim()) {
       newErrors.security_answer = 'Security Answer is required';
     }
-    
 
     if (!formData.password) {
       newErrors.password = 'Password is required';
@@ -100,7 +107,7 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('form submit')
+    console.log('form submit');
     if (!validateForm()) return;
 
     try {
@@ -264,9 +271,7 @@ export default function RegisterPage() {
                   type="number"
                   min="0"
                   value={formData.id_no as number}
-                  onChange={(e) =>
-                    handleInputChange('id_no', e.target.value)
-                  }
+                  onChange={(e) => handleInputChange('id_no', e.target.value)}
                   error={errors.id_no}
                   placeholder="7583734"
                   autoComplete="id_no"
@@ -300,7 +305,12 @@ export default function RegisterPage() {
                     <SelectValue placeholder="Select Security Question" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="birth_city">
+                    {Object.entries(security_questions).map(([key, value]) => (
+                      <SelectItem key={key} value={key}>
+                        {value}
+                      </SelectItem>
+                    ))}
+                    {/* <SelectItem value="birth_city">
                       What is the city where you were born?
                     </SelectItem>
                     <SelectItem value="maiden_name">
@@ -311,10 +321,12 @@ export default function RegisterPage() {
                     </SelectItem>
                     <SelectItem value="childhood_friend">
                       What is the name of your childhood best friend?
-                    </SelectItem>
+                    </SelectItem> */}
                   </SelectContent>
                 </Select>
-                {errors.security_question && <span>{errors.security_question}</span>}
+                {errors.security_question && (
+                  <span>{errors.security_question}</span>
+                )}
               </div>
 
               <FormInput

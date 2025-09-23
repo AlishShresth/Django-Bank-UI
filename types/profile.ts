@@ -1,3 +1,4 @@
+import type { SecurityQuestions } from "./auth";
 export interface Profile {
   title: Salutation;
   first_name: string;
@@ -37,6 +38,7 @@ export interface Profile {
   created_at: string;
   next_of_kin: NextOfKin[];
   last_login: string;
+  security_question: SecurityQuestions;
 }
 
 export interface NextOfKin {

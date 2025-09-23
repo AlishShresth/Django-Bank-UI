@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, devtools } from 'zustand/middleware';
 import type { Profile, NextOfKin, ProfileState } from '@/types/profile';
 import { apiClient } from '@/lib/axios';
-import {toast} from 'sonner';
+import { toast } from 'sonner';
 
 interface ProfileStore extends ProfileState {
   getProfile: () => Promise<void>;
@@ -14,17 +14,22 @@ interface ProfileStore extends ProfileState {
   setLoading: (loading: boolean) => void;
   setProfile: (profileData: any) => void;
   setError: (error: Record<string, any> | null) => void;
+  resetProfile: () => void;
 }
+
+const initialState = {
+  profile: null,
+  next_of_kin_list: [] as NextOfKin[],
+  next_of_kin: null,
+  isLoading: false,
+  error: null,
+};
 
 export const useProfileStore = create<ProfileStore>()(
   devtools(
     persist(
       (set, get) => ({
-        profile: null,
-        next_of_kin_list: [] as NextOfKin[],
-        next_of_kin: null,
-        isLoading: false,
-        error: null,
+        ...initialState,
 
         getProfile: async () => {
           set({ isLoading: true });
@@ -51,7 +56,9 @@ export const useProfileStore = create<ProfileStore>()(
               }
             );
             const { data } = response.data.profile;
-            toast.success(response.data.profile.message || "Profile Updated Successfully");
+            toast.success(
+              response.data.profile.message || 'Profile Updated Successfully'
+            );
             set({ profile: data, isLoading: false });
           } catch (error: any) {
             set({
@@ -148,6 +155,8 @@ export const useProfileStore = create<ProfileStore>()(
         setError: (error: Record<string, any> | null) => {
           set({ error });
         },
+
+        resetProfile: () => set(initialState),
       }),
       {
         name: 'profile-storage',

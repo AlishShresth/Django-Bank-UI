@@ -1,88 +1,126 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from "react"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { TransferForm } from "@/components/transfers/transfer-form"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { CheckCircle } from "lucide-react"
-import type { Account, Transfer } from "@/types/banking"
-
-// Mock data - replace with actual API calls
-const mockAccounts: Account[] = [
-  {
-    id: "1",
-    accountNumber: "1234567890",
-    accountType: "checking",
-    balance: 8234.5,
-    currency: "USD",
-    status: "active",
-    createdAt: "2024-01-15T10:00:00Z",
-    userId: "user1",
-  },
-  {
-    id: "2",
-    accountNumber: "1234567891",
-    accountType: "savings",
-    balance: 4111.17,
-    currency: "USD",
-    status: "active",
-    createdAt: "2024-01-10T10:00:00Z",
-    userId: "user1",
-  },
-]
+import { useState, useEffect } from 'react';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { TransferForm } from '@/components/transfers/transfer-form';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { CheckCircle } from 'lucide-react';
+import { apiClient } from '@/lib/axios';
+import type { Transfer } from '@/types/transaction';
+import { useAccountStore } from '@/stores/account-store';
+import { useTransactionStore } from '@/stores/transaction-store';
+import { formatDate, formatBalance } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export default function TransfersPage() {
-  const [accounts, setAccounts] = useState<Account[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [transferSuccess, setTransferSuccess] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false);
+  const [transferSuccess, setTransferSuccess] = useState<string | null>(null);
+
+  const { getAccounts, account_list, setAccounts } = useAccountStore();
+  const { getTransactions, transaction_list, setTransactions } =
+    useTransactionStore();
 
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setAccounts(mockAccounts)
-      setIsLoading(false)
-    }, 1000)
-  }, [])
+    if (account_list.length == 0) {
+      getAccounts();
+    }
+    if (transaction_list.length == 0) {
+      getTransactions();
+    }
+  }, []);
 
   const handleTransfer = async (transfer: Transfer) => {
     // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    try {
+      const response = await apiClient.post(
+        '/v1/accounts/transfer/initiate/',
+        transfer
+      );
+      return response;
+    } catch (error: any) {
+      console.error(error);
+      throw (
+        error.response.data?.initiate_transfer?.non_field_errors[0] || error
+      );
+    }
+  };
 
-    // Update account balances
-    setAccounts((prevAccounts) =>
-      prevAccounts.map((account) => {
-        if (account.id === transfer.fromAccountId) {
-          return { ...account, balance: account.balance - transfer.amount }
+  const handleVerifySecurityQuestion = async (security_answer: string) => {
+    try {
+      const response = await apiClient.post(
+        '/v1/accounts/transfer/verify-security-question/',
+        { security_answer: security_answer }
+      );
+      return response;
+    } catch (error: any) {
+      toast.error('Failed to verity security question');
+      console.error(error);
+      throw (
+        error.response.data?.verification_answer?.non_field_errors[0] || error
+      );
+    }
+  };
+
+  const handleVerifyOTP = async (otp: string) => {
+    try {
+      const response = await apiClient.post(
+        '/v1/accounts/transfer/verify-otp/',
+        { otp: otp }
+      );
+      const transfer = response.data.verify_otp;
+      setTransactions([transfer, ...transaction_list]);
+      // Update account balances
+      const updatedAccounts = account_list.map((account) => {
+        if (account.account_number === transfer.sender_account) {
+          return {
+            ...account,
+            account_balance: (
+              parseFloat(account.account_balance) - parseFloat(transfer.amount)
+            ).toString(),
+          };
         }
-        if (account.id === transfer.toAccountId) {
-          return { ...account, balance: account.balance + transfer.amount }
+        if (account.account_number === transfer.receiver_account) {
+          return {
+            ...account,
+            account_balance: (
+              parseFloat(account.account_balance) + parseFloat(transfer.amount)
+            ).toString(),
+          };
         }
-        return account
-      }),
-    )
+        return account;
+      });
+      setAccounts(updatedAccounts);
 
-    const sourceAccount = accounts.find((acc) => acc.id === transfer.fromAccountId)
-    const destinationAccount = accounts.find((acc) => acc.id === transfer.toAccountId)
+      const sourceAccount = account_list.find(
+        (acc) => acc.account_number === transfer.sender_account
+      );
+      const destinationAccount = account_list.find(
+        (acc) => acc.account_number === transfer.receiver_account
+      );
 
-    setTransferSuccess(
-      `Successfully transferred $${transfer.amount.toFixed(2)} from ${sourceAccount?.accountType} to ${
-        destinationAccount?.accountType
-      }`,
-    )
+      setTransferSuccess(
+        `Successfully transferred ${formatBalance(transfer.amount)} from ${
+          sourceAccount?.account_number
+        } to ${destinationAccount?.account_number}`
+      );
 
-    // Clear success message after 5 seconds
-    setTimeout(() => setTransferSuccess(null), 5000)
-  }
+      // Clear success message after 5 seconds
+      setTimeout(() => setTransferSuccess(null), 5000);
+      return response;
+    } catch (error: any) {
+      throw error.response.data?.verify_otp?.non_field_errors[0] || error;
+    }
+  };
 
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="flex items-center justify-center h-screen">
+          <div className="animate-spin rounded-full h-24 w-24 border-b-2 border-primary"></div>
         </div>
       </DashboardLayout>
-    )
+    );
   }
 
   return (
@@ -90,18 +128,27 @@ export default function TransfersPage() {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Transfer Money</h1>
-          <p className="text-muted-foreground">Send money between your accounts or to other accounts</p>
+          <p className="text-muted-foreground">
+            Send money between your accounts or to other accounts
+          </p>
         </div>
 
         {transferSuccess && (
           <Alert className="border-success bg-success/10">
             <CheckCircle className="h-4 w-4 text-success" />
-            <AlertDescription className="text-success">{transferSuccess}</AlertDescription>
+            <AlertDescription className="text-success">
+              {transferSuccess}
+            </AlertDescription>
           </Alert>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <TransferForm accounts={accounts} onTransfer={handleTransfer} />
+          <TransferForm
+            accounts={account_list}
+            onTransfer={handleTransfer}
+            onVerifySecurityQuestion={handleVerifySecurityQuestion}
+            onVerifyOTP={handleVerifyOTP}
+          />
 
           <Card>
             <CardHeader>
@@ -109,42 +156,39 @@ export default function TransfersPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {[
-                  {
-                    description: "Transfer to Savings",
-                    amount: "$100.00",
-                    date: "Today",
-                    status: "completed",
-                  },
-                  {
-                    description: "Transfer to John Doe",
-                    amount: "$250.00",
-                    date: "Yesterday",
-                    status: "completed",
-                  },
-                  {
-                    description: "Transfer to Business Account",
-                    amount: "$500.00",
-                    date: "2 days ago",
-                    status: "pending",
-                  },
-                ].map((transfer, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <p className="font-medium text-foreground">{transfer.description}</p>
-                      <p className="text-sm text-muted-foreground">{transfer.date}</p>
+                {transaction_list
+                  .filter(
+                    (transaction) => transaction.transaction_type == 'transfer'
+                  )
+                  .slice(0, 5)
+                  .map((transfer, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 border rounded-lg"
+                    >
+                      <div>
+                        <p className="font-medium text-foreground">
+                          {transfer.description}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {formatDate(transfer.created_at)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-foreground">
+                          {formatBalance(transfer.amount.toString())}
+                        </p>
+                        <p className="text-xs text-muted-foreground capitalize">
+                          {transfer.status}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-foreground">{transfer.amount}</p>
-                      <p className="text-xs text-muted-foreground capitalize">{transfer.status}</p>
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
     </DashboardLayout>
-  )
+  );
 }

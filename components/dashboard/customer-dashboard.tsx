@@ -13,84 +13,49 @@ import {
   PlusCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { BankAccount } from '@/types/banking';
-import { Transaction } from '@/types/transaction';
-import { VirtualCard } from '@/types/card';
 import { useProfileStore } from '@/stores/profile-store';
-import { apiClient } from '@/lib/axios';
+import { useAccountStore } from '@/stores/account-store';
+import { useTransactionStore } from '@/stores/transaction-store';
 import { formatDateRelative } from '@/lib/formatDate';
 import { formatBalance } from '@/lib/utils';
+import { useCardStore } from '@/stores/card-store';
 
 export function CustomerDashboard() {
   const { profile } = useProfileStore();
-  const [accounts, setAccounts] = useState([] as BankAccount[]);
-  const [transactions, setTransactions] = useState([] as Transaction[]);
-  const [cards, setCards] = useState([] as VirtualCard[]);
-  const [totalBalance, setTotalBalance] = useState(0);
+  const { getAccounts, account_list, isLoading } = useAccountStore();
+  const { getTransactions, transaction_list } = useTransactionStore();
+  const { getCards, card_list, debit_cards, credit_cards } = useCardStore();
+  const [totalBalance, setTotalBalance] = useState('0');
   const [balanceChangePercentage, setBalanceChangePercentage] = useState(0);
-  const [debitCards, setDebitCards] = useState(0);
-  const [creditCards, setCreditCards] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const currency = 'NPR';
-  const fetchAccounts = async () => {
-    try {
-      setIsLoading(true);
-      const response = await apiClient.get('/v1/accounts/accounts/');
-      setAccounts(response.data.account_list.results);
-    } catch (error: any) {
-      console.error(error);
-      setAccounts([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchTransactions = async () => {
-    try {
-      const response = await apiClient.get('/v1/accounts/transactions/');
-      setTransactions(response.data.transaction_list.results);
-    } catch (error: any) {
-      console.error(error);
-      setTransactions([]);
-    }
-  };
-
-  const fetchCards = async () => {
-    try {
-      const response = await apiClient.get('/v1/cards/virtual-cards/');
-      setCards(response.data.card_list.results);
-      if (response.data.card_list.results.length > 0) {
-        setDebitCards(response.data.card_list.results[0].debit_cards_count);
-        setCreditCards(response.data.card_list.results[0].credit_cards_count);
-      }
-    } catch (error: any) {
-      console.error(error);
-      setCards([]);
-    }
-  };
 
   useEffect(() => {
-    fetchAccounts();
+    if (account_list.length == 0) {
+      getAccounts();
+    }
   }, []);
 
   useEffect(() => {
-    if (accounts.length == 0) return;
-    fetchTransactions();
-    fetchCards();
+    if (account_list.length == 0) return;
+    if (transaction_list.length == 0) {
+      getTransactions();
+    }
+    if (card_list.length == 0) {
+      getCards();
+    }
     let amount = 0;
     let changePercent = 0;
-    for (let i = 0; i < accounts.length; i++) {
-      amount += parseFloat(accounts[i].account_balance.toString());
-      if(accounts[i].balance_change_percentage){ 
+    for (let i = 0; i < account_list.length; i++) {
+      amount += parseFloat(account_list[i].account_balance.toString());
+      if (account_list[i].balance_change_percentage) {
         changePercent += parseFloat(
-          accounts[i].balance_change_percentage.toString()
+          account_list[i].balance_change_percentage.toString()
         );
       }
     }
-    changePercent /= accounts.length;
-    setTotalBalance(amount);
+    changePercent /= account_list.length;
+    setTotalBalance(amount.toString());
     setBalanceChangePercentage(changePercent);
-  }, [accounts]);
+  }, [account_list]);
 
   return (
     <>
@@ -99,7 +64,7 @@ export function CustomerDashboard() {
           <div className="animate-spin rounded-full h-24 w-24 border-b-2 border-primary"></div>
         </div>
       )}
-      {!isLoading && accounts.length > 0 ? (
+      {!isLoading && account_list.length > 0 ? (
         <div className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold text-foreground">
@@ -131,8 +96,8 @@ export function CustomerDashboard() {
               }
               icon={<DollarSign className="h-4 w-4" />}
             />
-            {accounts.length > 0 &&
-              accounts.map((account) => (
+            {account_list.length > 0 &&
+              account_list.map((account) => (
                 <StatsCard
                   key={account.account_number}
                   title={
@@ -141,11 +106,16 @@ export function CustomerDashboard() {
                     'Account'
                   }
                   value={formatBalance(account.account_balance)}
-                  change={account.account_balance > 0 ?
-                    '+' + account.annual_interest_rate * 100 + '% interest' : '+0% interest'
+                  change={
+                    parseFloat(account.account_balance) > 0
+                      ? '+' + account.annual_interest_rate * 100 + '% interest'
+                      : '+0% interest'
                   }
                   changeType={
-                    account.account_balance <= 0 ? 'neutral' : 'positive'
+                    account.annual_interest_rate * 100 > 0 &&
+                    parseFloat(account.account_balance) > 0
+                      ? 'positive'
+                      : 'neutral'
                   }
                   icon={
                     account.account_type == 'current' ? (
@@ -158,14 +128,14 @@ export function CustomerDashboard() {
               ))}
             <StatsCard
               title="Active Cards"
-              value={(debitCards + creditCards).toString()}
+              value={(debit_cards + credit_cards).toString()}
               change={
-                debitCards > 0 && creditCards > 0
-                  ? `${debitCards} debit, ${creditCards} credit`
-                  : debitCards
-                  ? `${debitCards} debit`
-                  : creditCards
-                  ? `${creditCards} credit}`
+                debit_cards > 0 && credit_cards > 0
+                  ? `${debit_cards} debit, ${credit_cards} credit`
+                  : debit_cards
+                  ? `${debit_cards} debit`
+                  : credit_cards
+                  ? `${credit_cards} credit}`
                   : 'No active cards'
               }
               changeType="neutral"
@@ -181,8 +151,8 @@ export function CustomerDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {transactions.length > 0 ? (
-                    transactions.map((transaction, index) => (
+                  {transaction_list.length > 0 ? (
+                    transaction_list.slice(0, 5).map((transaction, index) => (
                       <div
                         key={index}
                         className="flex items-center justify-between"
@@ -194,7 +164,7 @@ export function CustomerDashboard() {
                           <p className="text-xs text-muted-foreground">
                             {formatDateRelative(
                               transaction.created_at.split('T')[0]
-                            )}
+                            )}{' '}
                           </p>
                         </div>
                         <span
